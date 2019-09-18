@@ -76,7 +76,8 @@ impl Config {
         println!("New Entry");
     }
 
-
+    /// launches the editor based on the format settings in this config,
+    /// returns Err if this fails
     pub fn launch_editor(&self, path: &Path) -> Result<(), JrnError> {
         //check unicode validity of path
         let path_str = path.to_str();
@@ -95,7 +96,7 @@ impl Config {
         Ok(())
     }
 
-    /// formats the file name based on the format settings in the config
+    /// formats the file name based on the format settings in this config
     fn format_file_name(&self, tags: Option<Vec<&str>>) -> String {
         let mut file_name = self.timestamp_fmt.get_time_string();
 
