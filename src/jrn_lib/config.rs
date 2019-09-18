@@ -90,19 +90,13 @@ impl Config {
         let cmd = Command::new(&self.editor)
             .arg(&self.editor_args)
             .arg(path_str)
-            .output();
-
-        //check result of command and build an error if needed
-        if cmd.is_err() {
-            let err_msg = format!("Failed to start process: {} {} {}", self.editor, self.editor_args, path_str);
-            return Err(JrnError::from(err_msg))
-        }
+            .output()?;
 
         Ok(())
     }
 
     /// formats the file name based on the format settings in the config
-    fn format_file_name(&self, tags: Vec<&str>) -> String {
+    fn format_file_name(&self, tags: Option<Vec<&str>>) -> String {
         let mut file_name = self.timestamp_fmt.get_time_string();
 
         file_name.push(self.tag_start_char);
@@ -112,26 +106,30 @@ impl Config {
             file_name.push_str(tag);
         }
 
-        for tag in tags {
-            file_name.push(self.tag_deliminator);
-            file_name.push_str(tag);
+        if let Some(tags) = tags {
+            for tag in tags {
+                file_name.push(self.tag_deliminator);
+                file_name.push_str(tag);
+            }
         }
 
         file_name
     }
 
-    /// builds up a file name and path for a potential new entry
-    /// returning None if the file already exists
-    fn check_path(&self, tags: Vec<&str>) -> Option<PathBuf> {
+    /// formats the file name for a potential new entry
+    /// returning Err if the file already exists
+    fn check_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
         let file_name = self.format_file_name(tags);
         let path_buf = PathBuf::from(file_name);
 
         //return None if entry already exists
         if path_buf.exists() {
-            None
+            use std::io::{Error, ErrorKind};
+            let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
+            Err(JrnError::with_cause(boxed_err))
         }
         else {
-            Some(path_buf)
+            Ok(path_buf)
         }
     }
 }
