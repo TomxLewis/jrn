@@ -43,38 +43,6 @@ impl Config {
         Config::default()
     }
 
-    /// Read a config file from disk
-    /// Returns Err when the file is not readable or properly formatted
-    fn read(path: &Path) -> Result<Self, JrnError> {
-        use ron::de::from_bytes;
-
-        let mut file = File::open(path)?;
-        let mut contents: Vec<u8> = Vec::new();
-        file.read_to_end(&mut contents)?;
-        let cfg = from_bytes(&contents)?;
-
-        Ok(cfg)
-    }
-
-    /// Writes the config struct to a path, truncating any existing file
-    /// Returns Err when path is not writable
-    fn write(&self, path: &Path) -> Result<(), JrnError> {
-        use ron::ser::PrettyConfig;
-        use ron::ser::Serializer;
-        let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
-
-        let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
-        self.serialize(&mut serializer)?;
-
-        let serialization_result = serializer.into_output_string();
-        file.write_all(&mut serialization_result.as_bytes()).unwrap();
-        Ok(())
-    }
-
-    pub fn new_entry(&self, _tags: Option<Vec<&str>>) {
-        println!("New Entry");
-    }
-
     /// launches the editor based on the format settings in this config,
     /// returns Err if this fails
     pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
@@ -102,6 +70,36 @@ impl Config {
         Ok(())
     }
 
+    /// formats the file name for a potential new entry
+    /// returning Err if the file already exists
+    fn check_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
+        let file_name = self.format_file_name(tags);
+        let path_buf = PathBuf::from(file_name);
+
+        //return None if entry already exists
+        if path_buf.exists() {
+            use std::io::{Error, ErrorKind};
+            let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
+            Err(JrnError::with_cause(boxed_err))
+        }
+        else {
+            Ok(path_buf)
+        }
+    }
+
+    /// Read a config file from disk
+    /// Returns Err when the file is not readable or properly formatted
+    fn read(path: &Path) -> Result<Self, JrnError> {
+        use ron::de::from_bytes;
+
+        let mut file = File::open(path)?;
+        let mut contents: Vec<u8> = Vec::new();
+        file.read_to_end(&mut contents)?;
+        let cfg = from_bytes(&contents)?;
+
+        Ok(cfg)
+    }
+
     /// formats the file name based on the format settings in this config
     fn format_file_name(&self, tags: Option<Vec<&str>>) -> String {
         let mut file_name = self.timestamp_fmt.get_time_string();
@@ -123,21 +121,19 @@ impl Config {
         file_name
     }
 
-    /// formats the file name for a potential new entry
-    /// returning Err if the file already exists
-    fn check_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
-        let file_name = self.format_file_name(tags);
-        let path_buf = PathBuf::from(file_name);
+    /// Writes the config struct to a path, truncating any existing file
+    /// Returns Err when path is not writable
+    fn write(&self, path: &Path) -> Result<(), JrnError> {
+        use ron::ser::PrettyConfig;
+        use ron::ser::Serializer;
+        let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
 
-        //return None if entry already exists
-        if path_buf.exists() {
-            use std::io::{Error, ErrorKind};
-            let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
-            Err(JrnError::with_cause(boxed_err))
-        }
-        else {
-            Ok(path_buf)
-        }
+        let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
+        self.serialize(&mut serializer)?;
+
+        let serialization_result = serializer.into_output_string();
+        file.write_all(&mut serialization_result.as_bytes()).unwrap();
+        Ok(())
     }
 }
 
