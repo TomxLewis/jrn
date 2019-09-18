@@ -2,11 +2,10 @@ use serde::{Serialize, Deserialize};
 use super::time::TimeStampFmt;
 use super::time::UtcOffset;
 
-
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Config {
     editor: String,
-    editor_args: String,
+    editor_args: Vec<String>,
     timezone: UtcOffset,
     timestamp_fmt: TimeStampFmt,
     tag_start_char: char,
@@ -18,7 +17,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             editor: String::from("vim"),
-            editor_args: String::from("+star"),
+            editor_args: vec!(String::from("+star")),
             timezone: UtcOffset::local(),
             timestamp_fmt: TimeStampFmt::Default,
             tag_start_char: '_',
@@ -78,19 +77,26 @@ impl Config {
 
     /// launches the editor based on the format settings in this config,
     /// returns Err if this fails
-    pub fn launch_editor(&self, path: &Path) -> Result<(), JrnError> {
-        //check unicode validity of path
-        let path_str = path.to_str();
-        if path_str.is_none() {
-            return Err(JrnError::with_msg("path contains invalid UTF8"))
+    pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
+        let mut args: Vec<String> = Vec::new();
+        for arg in self.editor_args.clone() {
+            args.push(arg)
         }
-        let path_str = path_str.unwrap();
-        dbg!(&path_str);
+
+        //if no path don't worry
+        if let Some(path) = path {
+            //check unicode validity of the path if it was given
+            let path_str = path.to_str();
+            if path_str.is_none() {
+                return Err(JrnError::with_msg("path contains invalid UTF8"))
+            }
+            let path_str = path_str.unwrap();
+            args.push(String::from(path_str));
+        }
 
         //build command to send to os
         let cmd = Command::new(&self.editor)
-            .arg(&self.editor_args)
-            .arg(path_str)
+            .args(args)
             .output()?;
 
         Ok(())
