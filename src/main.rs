@@ -1,3 +1,57 @@
+extern crate clap;
+use clap::{Arg, App, SubCommand};
+
+use jrn::*;
+
+fn clap_app<'a, 'b>() -> App<'a, 'b> {
+    App::new("jrn")
+        .version("0.1.0")
+        .author("Tom Lewis <tomxlewis@gmail.com")
+        .about("Command Line journaling System that Integrates with git for version control.")
+        .arg(Arg::with_name("tag")
+            .help("creates a new entry with TAGS")
+            .short("t")
+            .long("tag")
+            .takes_value(true)
+            .value_name("TAGS")
+            .conflicts_with_all(&["entry", "view"]))
+        .arg(Arg::with_name("entry")
+            .help("creates a new entry with TEXT")
+            .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
+            .short("e")
+            .long("entry")
+            .takes_value(true)
+            .value_name("TEXT")
+            .conflicts_with_all(&["tag", "view"]))
+        .arg(Arg::with_name("list")
+            .help("concatenates last NUM of entries to stdout")
+            .short("l")
+            .long("list")
+            .takes_value(true)
+            .value_name("N")
+            .conflicts_with_all(&["tag", "entry"]))
+        .subcommand(SubCommand::with_name("config")
+            .about("Alters jrn configuration")
+            .arg(Arg::with_name("file")
+                .value_name("FILE")
+                .takes_value(true)))
+}
+
+fn main() {
+    let app = clap_app();
+    let cfg = Config::find_or_default();
+
+    //let mut out = std::io::stdout();
+    //app.write_help(&mut out).expect("Failed to write to standard output");
+    //println!();
+
+    cfg.new_entry(None);
+}
+
+#[cfg(test)]
+mod test {
+
+}
 use clap::{App, AppSettings, Arg, SubCommand};
 
 fn main() {

@@ -1,4 +1,7 @@
 /target
-*.iml
-*.ipr
-*.iws
+**/*.rs.bk
+.gitignore
+Cargo.toml
+jrn.iml
+jrn.ipr
+jrn.iws
