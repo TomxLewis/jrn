@@ -1,5 +1,6 @@
 extern crate clap;
-use clap::{Arg, App, SubCommand};
+use clap::{Arg, App, SubCommand, AppSettings};
+use std::io::Write;
 
 use jrn::*;
 
@@ -8,11 +9,11 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .version("0.1.0")
         .author("Tom Lewis <tomxlewis@gmail.com")
         .about("Command Line journaling System that Integrates with git for version control.")
+        .setting(AppSettings::ArgRequiredElseHelp)
         .arg(Arg::with_name("tag")
             .help("creates a new entry with TAGS")
-            .short("t")
-            .long("tag")
-            .takes_value(true)
+            //.required(true)
+            .multiple(true)
             .value_name("TAGS")
             .conflicts_with_all(&["entry", "view"]))
         .arg(Arg::with_name("entry")
@@ -40,12 +41,10 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 fn main() {
     let app = clap_app();
     let cfg = Config::find_or_default();
+    let repo = JrnRepo::init(&cfg);
 
-    //let mut out = std::io::stdout();
-    //app.write_help(&mut out).expect("Failed to write to standard output");
-    //println!();
 
-    cfg.new_entry(None);
+    let matches = app.get_matches();
 }
 
 #[cfg(test)]

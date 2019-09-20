@@ -14,7 +14,7 @@ pub struct JrnEntry {
 }
 
 impl JrnEntry {
-    pub fn new(cfg: &Config) -> Self {
+    pub fn new(cfg: &Config, tags: Option<Vec<String>>) -> Self {
         unimplemented!()
     }
 }

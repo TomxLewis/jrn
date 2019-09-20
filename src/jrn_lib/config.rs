@@ -1,6 +1,12 @@
-use serde::{Serialize, Deserialize};
 use super::time::TimeStampFmt;
 use super::time::UtcOffset;
+use super::error::{JrnError, JrnErrorKind};
+
+use serde::{Serialize, Deserialize};
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Config {
@@ -26,13 +32,6 @@ impl Default for Config {
         }
     }
 }
-
-use super::error::JrnError;
-
-use std::fs::{File, OpenOptions};
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::io::{Read, Write};
 
 impl Config {
     /// searches the system for a .jrn config file
@@ -112,7 +111,7 @@ impl Config {
         if path_buf.exists() {
             use std::io::{Error, ErrorKind};
             let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
-            Err(JrnError::with_cause(boxed_err))
+            Err(JrnError::with_cause(boxed_err, JrnErrorKind::IOError))
         }
         else {
             Ok(path_buf)

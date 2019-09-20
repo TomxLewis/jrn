@@ -21,13 +21,19 @@ impl JrnRepo {
     ///
     /// returning Err if unable to write new entries
     /// will not return Err if unable to read files in dir
-    pub fn init(cfg: Config) -> Result<Self, JrnError> {
+    pub fn init(cfg: &Config) -> Result<Self, JrnError> {
+        //TODO
         //list all files in the directory
         //filter all that have valid jrn formatting
         //populate self.entries with found entries
         //populate self.tags with found tags
-        unimplemented!()
+        let repo = JrnRepo {
+            entries: Vec::new(),
+            tags: HashMap::new(),
+        };
+        Ok(repo)
     }
+
 
     /// Tries to create a new entry in this repo
     /// according to the formatting rules in the [Config],

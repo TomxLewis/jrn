@@ -2,10 +2,16 @@ type BoxedError = Box<dyn std::error::Error>;
 
 #[derive(Debug)]
 pub struct JrnError {
-    msg: Option<String>,
     file: &'static str,
     line: u32,
     cause: Option<BoxedError>,
+    pub kind: JrnErrorKind,
+}
+
+#[derive(Debug)]
+pub enum JrnErrorKind {
+    IOError,
+    UtfError,
 }
 
 impl std::error::Error for JrnError {}
@@ -17,23 +23,24 @@ impl std::fmt::Display for JrnError {
 }
 
 impl JrnError {
+
     #[inline]
-    pub fn with_msg(msg: &str) -> Self {
-        JrnError::build(Some(msg), None)
+    pub fn with_cause(error: BoxedError, kind: JrnErrorKind) -> Self {
+        JrnError::build(Some(error), kind)
     }
 
     #[inline]
-    pub fn with_cause(error: BoxedError) -> Self {
-        JrnError::build(None, Some(error))
+    pub fn kind(kind: JrnErrorKind) -> Self {
+        JrnError::build(None, kind)
     }
 
     #[inline]
-    fn build(msg: Option<&str>, cause: Option<BoxedError>) -> Self {
+    fn build(cause: Option<BoxedError>, kind: JrnErrorKind) -> Self {
         JrnError {
-            msg: msg.map(|s| String::from(s)),
             file: file!(),
             line: line!(),
             cause,
+            kind,
         }
     }
 
@@ -45,23 +52,20 @@ impl JrnError {
 impl From<std::io::Error> for JrnError {
     #[inline]
     fn from(err: std::io::Error) -> Self {
-        let msg = format!("IO Error: {:?}", &err.kind());
-        JrnError::build(Some(&msg), Some(Box::new(err)))
+        JrnError::build(Some(Box::new(err)), JrnErrorKind::IOError)
     }
 }
 
 impl From<ron::ser::Error> for JrnError {
     #[inline]
     fn from(err: ron::ser::Error) -> Self {
-        let msg = format!("Serialization Error: {:?}", &err);
-        JrnError::build(Some(&msg), Some(Box::new(err)))
+        JrnError::build(Some(Box::new(err)), JrnErrorKind::IOError)
     }
 }
 
 impl From<ron::de::Error> for JrnError {
     #[inline]
     fn from(err: ron::de::Error) -> Self {
-        let msg = format!("Deserialization Error: {:?}", &err);
-        JrnError::build(Some(&msg), Some(Box::new(err)))
+        JrnError::build(Some(Box::new(err)), JrnErrorKind::IOError)
     }
 }
