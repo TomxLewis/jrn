@@ -2,10 +2,10 @@ type BoxedError = Box<dyn std::error::Error>;
 
 #[derive(Debug)]
 pub struct JrnError {
+    pub kind: JrnErrorKind,
     file: &'static str,
     line: u32,
     cause: Option<BoxedError>,
-    pub kind: JrnErrorKind,
 }
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ impl std::error::Error for JrnError {}
 
 impl std::fmt::Display for JrnError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "msg: {:?}\nfile: {}\nline: {}\ncause: {:?}", self.msg, self.file, self.line, self.cause)
+        write!(f, "kind: {:?}\nfile: {}\nline: {}\ncause: {:?}", self.kind, self.file, self.line, self.cause)
     }
 }
 
@@ -37,10 +37,10 @@ impl JrnError {
     #[inline]
     fn build(cause: Option<BoxedError>, kind: JrnErrorKind) -> Self {
         JrnError {
+            kind,
             file: file!(),
             line: line!(),
             cause,
-            kind,
         }
     }
 

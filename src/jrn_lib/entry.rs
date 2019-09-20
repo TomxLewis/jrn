@@ -2,8 +2,6 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::io::{Write, Read};
 
-use chrono::prelude::*;
-
 use super::Config;
 
 /// the in memory representation of a jrn entry

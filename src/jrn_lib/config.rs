@@ -87,7 +87,7 @@ impl Config {
             //check unicode validity of the path if it was given
             let path_str = path.to_str();
             if path_str.is_none() {
-                return Err(JrnError::with_msg("path contains invalid UTF8"))
+                return Err(JrnError::kind(JrnErrorKind::UtfError))
             }
             let path_str = path_str.unwrap();
             args.push(String::from(path_str));
