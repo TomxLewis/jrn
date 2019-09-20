@@ -35,12 +35,44 @@ use std::process::Command;
 use std::io::{Read, Write};
 
 impl Config {
-
     /// searches the system for a .jrn config file
-    /// if not found creates the default
+    /// if not found just returns the default
+    ///
+    /// specifically will check the following locations and return the most local
+    /// in order of global -> local
+    ///     ~/.config/.jrnconfig
+    ///     ~/.jrnconfig
+    ///     ./.jrnconfig
+    ///
     pub fn find_or_default() -> Self {
-        //TODO search system
-        Config::default()
+        let mut found_cfg: Option<Config> = None;
+        let optional_paths: Vec<Option<PathBuf>> = vec![dirs::config_dir(),
+                                                        dirs::home_dir(),
+                                                        std::env::current_dir().ok()];
+
+        // filter map possible config directories to config paths
+        let paths_to_check: Vec<PathBuf> = optional_paths.into_iter()
+            .filter_map(|mut p: Option<PathBuf>| {
+                p.map(|mut path_buf: PathBuf| {
+                    path_buf.push(String::from(super::JRN_CONFIG_FILE_NAME));
+                    path_buf
+                })
+            })
+            .collect();
+
+        // try to read from each, skipping errors, returning the most local found config if any
+        for path_buf in paths_to_check {
+            match Config::read(&path_buf) {
+                Ok(cfg) => found_cfg = Some(cfg),
+                _ => {}
+            }
+        }
+
+        //if we found one return it, else default
+        match found_cfg {
+            Some(cfg) => cfg,
+            None => Config::default()
+        }
     }
 
     /// launches the editor based on the format settings in this config,
