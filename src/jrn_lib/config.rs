@@ -178,8 +178,10 @@ mod test {
         let path = PathBuf::from("test.jrn");
         cfg.write(&path);
 
-        assert!(path.exists());
+        let existence = &path.exists();
         std::fs::remove_file(path);
+
+        assert!(existence);
     }
 
     #[test]
@@ -189,9 +191,9 @@ mod test {
         cfg.write(&path);
 
         let test = Config::read(&path).unwrap();
-        assert_eq!(cfg, test);
-
         std::fs::remove_file(path);
+
+        assert_eq!(cfg, test);
     }
 
 }
