@@ -9,7 +9,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::collections::HashSet;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+mod ignore;
+
+use ignore::JrnIgnore;
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     editor: String,
     editor_args: Vec<String>,
@@ -20,52 +24,6 @@ pub struct Config {
     config_local_tags: Vec<String>,
     ///file path regex's to ignore
     ignore: JrnIgnore,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct JrnIgnore {
-    filters: HashSet<String>,
-}
-
-impl Default for JrnIgnore {
-    fn default() -> Self {
-        JrnIgnore {
-            filters: HashSet::new(),
-        }
-    }
-}
-
-impl JrnIgnore {
-    /// read an ignore file from a path
-    /// returning Err if the path can not be read
-    /// returns empty JrnIgnore if no file is found at path
-    ///
-    /// TODO return Err if any regex is ill-formatted?
-    ///
-    pub fn from_path(path: &Path) -> Result<Self, JrnError> {
-        let mut filters: HashSet<String> = HashSet::new();
-
-        if path.exists() {
-            let mut buf = String::new();
-            let mut file = File::open(path)?;
-            file.read_to_string(&mut buf);
-            filters = buf.lines().map(|s| String::from(s)).collect();
-        }
-
-        Ok(
-            JrnIgnore {
-                filters
-            }
-        )
-    }
-
-    /// merge two JrnIgnore objects into one
-    pub fn merge(mut self, other: JrnIgnore) -> JrnIgnore {
-        for s in other.filters {
-            self.filters.insert(s);
-        }
-        self
-    }
 }
 
 impl Default for Config {
