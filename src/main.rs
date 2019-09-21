@@ -28,15 +28,22 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    let matches = clap_app().get_matches();
-    let mut cfg = Config::find_or_default();
+    //init
+    let cfg = Config::find_or_default();
     let mut repo = JrnRepo::init(cfg).expect("Failure init repo");
+
+    //process command line args
+    let matches = clap_app().get_matches();
 
     match matches.subcommand() {
         ("new", Some(args)) => new(args, &mut repo),
         _ => {
+            #[cfg(debug_assertions)]
             dbg!(&matches);
-            //clap_app().print_help();
+
+            //write out help message lazily if needed
+            #[cfg(not(debug_assertions))]
+            clap_app().print_help();
         }
     }
 }
