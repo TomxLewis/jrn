@@ -7,6 +7,9 @@ use std::io;
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
+    /// our current config
+    config: Config,
+
     /// entries sorted by creation time
     entries: Vec<JrnEntry>,
 
@@ -21,13 +24,14 @@ impl JrnRepo {
     ///
     /// returning Err if unable to write new entries
     /// will not return Err if unable to read files in dir
-    pub fn init(cfg: &Config) -> Result<Self, JrnError> {
+    pub fn init(config: Config) -> Result<Self, JrnError> {
         //TODO
         //list all files in the directory
         //filter all that have valid jrn formatting
         //populate self.entries with found entries
         //populate self.tags with found tags
         let repo = JrnRepo {
+            config,
             entries: Vec::new(),
             tags: HashMap::new(),
         };

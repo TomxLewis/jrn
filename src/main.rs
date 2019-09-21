@@ -30,10 +30,10 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 fn main() {
     let matches = clap_app().get_matches();
     let mut cfg = Config::find_or_default();
-    let mut repo = JrnRepo::init(&cfg).expect("Failure init repo");
+    let mut repo = JrnRepo::init(cfg).expect("Failure init repo");
 
     match matches.subcommand() {
-        ("new", Some(args)) => new(args, &cfg, &mut repo),
+        ("new", Some(args)) => new(args, &mut repo),
         _ => {
             dbg!(&matches);
             //clap_app().print_help();
@@ -41,7 +41,7 @@ fn main() {
     }
 }
 
-fn new(args: &ArgMatches, cfg: &Config, repo: &mut JrnRepo) {
+fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     //text to put in new entry if any
     let text: Option<&str> = args.value_of("from");
     dbg!(&text);
