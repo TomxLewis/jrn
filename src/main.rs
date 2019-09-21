@@ -33,6 +33,8 @@ fn main() {
     let mut cfg = Config::find_or_default();
     let mut repo = JrnRepo::init(&cfg).expect("Failure init repo");
 
+    dbg!(&matches);
+
     match matches.subcommand() {
         ("new", Some(args)) => new(args, &cfg, &mut repo),
         _ => {
@@ -42,5 +44,11 @@ fn main() {
 }
 
 fn new(args: &ArgMatches, cfg: &Config, repo: &mut JrnRepo) {
-    dbg!(args);
+    //text to put in new entry if any
+    let text: Option<&str> = args.value_of("from");
+    dbg!(&text);
+
+    //tags passed as args to the program
+    let tags: Option<Vec<String>> = args.values_of_lossy("tags");
+    dbg!(&tags);
 }
