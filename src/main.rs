@@ -9,7 +9,6 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .version("0.1.0")
         .author("Tom Lewis <tomxlewis@gmail.com")
         .about("Command Line journaling System that Integrates with git for version control.")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(SubCommand::with_name("new")
             .about("create a new jrn entry")
             .arg(Arg::from_usage("-f --from [TEXT] 'the new entries contents'")
@@ -33,12 +32,11 @@ fn main() {
     let mut cfg = Config::find_or_default();
     let mut repo = JrnRepo::init(&cfg).expect("Failure init repo");
 
-    dbg!(&matches);
-
     match matches.subcommand() {
         ("new", Some(args)) => new(args, &cfg, &mut repo),
         _ => {
-            dbg!(matches);
+            dbg!(&matches);
+            //clap_app().print_help();
         }
     }
 }
