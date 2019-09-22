@@ -124,6 +124,7 @@ impl SettingsFileResults {
             if let Ok(mut file) = File::open(path) {
                 let mut contents: Vec<u8> = Vec::new();
                 file.read_to_end(&mut contents)?;
+                //TODO fix impl of from_bytes
                 result = from_bytes(&contents)?;
             }
         }

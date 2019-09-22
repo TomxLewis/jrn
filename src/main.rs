@@ -8,7 +8,14 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .version("0.1.0")
         .author("Tom Lewis <tomxlewis@gmail.com")
         .about("Command Line journaling System that Integrates with git for version control.")
+        .arg(Arg::from_usage("-c --config [OPTION]=[VALUE]\"\" 'Set a configuration parameter for this run only'")
+            //TODO implement parsing config option=value pairs
+            .long_help("See mod jrn::jrn_lib::config::settings for fields and values")
+            //TODO document all config options
+            .multiple(true)
+            .number_of_values(2))
         .subcommand(SubCommand::with_name("new")
+            //TODO implement sub-command "new"
             .about("create a new jrn entry")
             .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
             .arg(Arg::from_usage("-n --note [TEXT] 'the new entries contents'")
@@ -18,8 +25,11 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true)
                 .multiple(true)))
         .subcommand(SubCommand::with_name("tags"))
+            //TODO define sub-command "tags"
         .subcommand(SubCommand::with_name("list"))
+            //TODO implement sub-command "list"
         .subcommand(SubCommand::with_name("config")
+            //TODO implement sub-command "config"
             .about("Alters or inquires the current jrn configuration")
             .arg(Arg::with_name("list")
                 .help("lists all config options and their values")
@@ -28,8 +38,9 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    //init
-    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
+    //init let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
+    //TODO pass any config args to cfg object
+
     let mut repo = JrnRepo::init(cfg).expect("Failure init repo");
 
     //process command line args
@@ -42,7 +53,7 @@ fn main() {
             dbg!(&matches);
 
             //write out help message lazily if needed
-            #[cfg(not(debug_assertions))]
+            //#[cfg(not(debug_assertions))]
             clap_app().print_help().unwrap();
         }
     }
