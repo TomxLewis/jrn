@@ -43,71 +43,21 @@ impl Default for Settings {
 }
 
 impl Settings {
+    /// formats the file name for a potential new entry
+    /// returning Err if the file already exists
+    pub fn build_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
+        let file_name = self.format_file_name(tags);
+        let path_buf = PathBuf::from(file_name);
 
-    /// convenience method for an empty settings object
-    fn empty() -> Self { Settings { map: BTreeMap::new() } }
-
-    /// merge an other into this,
-    /// favoring the config settings in self if found in both
-    fn merge(mut self, other: Settings) -> Self {
-        for (setting, mut value) in other.map {
-            match setting {
-                //if the setting is ConfigTags, merge
-                JrnSetting::ConfigLocalTags => {
-                    if !self.map.contains_key(&setting) {
-                        self.map.insert(setting, value);
-                    }
-                    else {
-                        //TODO dedupe tags
-                        let current = self.map.get(&setting).unwrap();
-                        value.push_str(&format!(",{}", current));
-                        self.map.insert(setting, value);
-                    }
-                }
-                //else if the setting already exists in self don't overwrite
-                _ => {
-                    if !self.map.contains_key(&setting) {
-                        self.map.insert(setting, value);
-                    }
-                }
-            }
+        //return Err if entry already exists
+        if path_buf.exists() {
+            use std::io::{Error, ErrorKind};
+            let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
+            Err(JrnError::with_cause(boxed_err, JrnErrorKind::IOError))
         }
-        self
-    }
-
-    /// Tries to read config from file path,
-    /// returning Ok(Settings) if found
-    /// returns Ok(Settings::empty()) if not found
-    ///
-    /// returns Err on IoError
-    fn read(path: &Path) -> Result<Self, JrnError> {
-        let mut result = Settings::empty();
-
-        if path.exists() {
-            if let Ok(mut file) = File::open(path) {
-                let mut contents: Vec<u8> = Vec::new();
-                file.read_to_end(&mut contents)?;
-                result = from_bytes(&contents)?;
-            }
+        else {
+            Ok(path_buf)
         }
-
-        Ok(result)
-    }
-
-    /// Writes the struct to a path, truncating any existing file
-    /// Returns Err when path is not writable
-    ///
-    /// currently only used for testing
-    ///
-    #[cfg(test)]
-    fn write(&self, path: &Path) -> Result<(), JrnError> {
-        let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
-        let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
-        self.serialize(&mut serializer)?;
-
-        let serialization_result = serializer.into_output_string();
-        file.write_all(&mut serialization_result.as_bytes()).unwrap();
-        Ok(())
     }
 
     /// Loads any configuration from the env
@@ -186,22 +136,8 @@ impl Settings {
         Ok(())
     }
 
-    /// formats the file name for a potential new entry
-    /// returning Err if the file already exists
-    pub fn build_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
-        let file_name = self.format_file_name(tags);
-        let path_buf = PathBuf::from(file_name);
-
-        //return Err if entry already exists
-        if path_buf.exists() {
-            use std::io::{Error, ErrorKind};
-            let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
-            Err(JrnError::with_cause(boxed_err, JrnErrorKind::IOError))
-        }
-        else {
-            Ok(path_buf)
-        }
-    }
+    /// convenience method for an empty settings object
+    fn empty() -> Self { Settings { map: BTreeMap::new() } }
 
     /// formats the file name based on the format settings in this config
     fn format_file_name(&self, tags: Option<Vec<&str>>) -> String {
@@ -236,6 +172,69 @@ impl Settings {
 
         file_name
     }
+
+    /// merge an other into this,
+    /// favoring the config settings in self if found in both
+    fn merge(mut self, other: Settings) -> Self {
+        for (setting, mut value) in other.map {
+            match setting {
+                //if the setting is ConfigTags, merge
+                JrnSetting::ConfigLocalTags => {
+                    if !self.map.contains_key(&setting) {
+                        self.map.insert(setting, value);
+                    }
+                    else {
+                        //TODO dedupe tags
+                        let current = self.map.get(&setting).unwrap();
+                        value.push_str(&format!(",{}", current));
+                        self.map.insert(setting, value);
+                    }
+                }
+                //else if the setting already exists in self don't overwrite
+                _ => {
+                    if !self.map.contains_key(&setting) {
+                        self.map.insert(setting, value);
+                    }
+                }
+            }
+        }
+        self
+    }
+
+    /// Tries to read config from file path,
+    /// returning Ok(Settings) if found
+    /// returns Ok(Settings::empty()) if not found
+    ///
+    /// returns Err on IoError or serialization error
+    fn read(path: &Path) -> Result<Self, JrnError> {
+        let mut result = Settings::empty();
+
+        if path.exists() {
+            if let Ok(mut file) = File::open(path) {
+                let mut contents: Vec<u8> = Vec::new();
+                file.read_to_end(&mut contents)?;
+                result = from_bytes(&contents)?;
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// Writes the struct to a path, truncating any existing file
+    /// Returns Err when path is not writable
+    ///
+    /// currently only used for testing
+    #[cfg(test)]
+    fn write(&self, path: &Path) -> Result<(), JrnError> {
+        let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
+        let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
+        self.serialize(&mut serializer)?;
+
+        let serialization_result = serializer.into_output_string();
+        file.write_all(&mut serialization_result.as_bytes()).unwrap();
+        Ok(())
+    }
+
 }
 
 #[cfg(test)]
