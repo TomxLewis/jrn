@@ -54,7 +54,9 @@ impl JrnRepo {
             file.write(text.as_bytes())?;
         }
 
-        self.config.launch_editor(Some(&path))?;
+        if open_editor {
+            self.config.launch_editor(Some(&path))?;
+        }
 
         Ok(())
     }

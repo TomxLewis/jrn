@@ -157,19 +157,22 @@ impl Settings {
         let time_string = time_format.get_time_string();
         file_name.push_str(&time_string);
 
+        //handle tags
         let tag_start_char = self.map.get(&JrnSetting::TagStartChar).unwrap();
-        file_name.push_str(tag_start_char);
-
         let tag_delim = self.map.get(&JrnSetting::TagDeliminator).unwrap();
 
+        //gather all tags
+        let mut tags = tags.clone();
         if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
             //TODO document need for split char
             let config_tags = config_tags.split(',');
             for tag in config_tags {
-                file_name.push_str(tag_delim);
-                file_name.push_str(tag);
+                tags.push(tag);
             }
+        }
 
+        if !tags.is_empty() {
+            file_name.push_str(tag_start_char);
         }
 
         for tag in tags {
