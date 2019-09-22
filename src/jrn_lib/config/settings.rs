@@ -129,10 +129,19 @@ impl Settings {
 
         //build and send command to os
         let editor = self.map.get(&JrnSetting::Editor).unwrap();
-        let cmd = Command::new(&editor)
-            .args(args)
-            .output()?;
+        let mut cmd = Command::new(&editor);
+        cmd.args(args);
 
+        dbg!(&cmd);
+
+        match cmd.spawn() {
+            Ok(mut child) => {
+                child.wait().expect("Command not running");
+            }
+            Err(e) => {
+                return Err(JrnError::with_cause(Box::new(e), JrnErrorKind::IOError))
+            }
+        }
         Ok(())
     }
 

@@ -25,17 +25,17 @@ impl std::fmt::Display for JrnError {
 
 impl JrnError {
 
-    #[inline]
+    #[inline(always)]
     pub fn with_cause(error: BoxedError, kind: JrnErrorKind) -> Self {
         JrnError::build(Some(error), kind)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn kind(kind: JrnErrorKind) -> Self {
         JrnError::build(None, kind)
     }
 
-    #[inline]
+    #[inline(always)]
     fn build(cause: Option<BoxedError>, kind: JrnErrorKind) -> Self {
         JrnError {
             kind,
