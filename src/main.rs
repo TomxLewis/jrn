@@ -38,7 +38,7 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    //init let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
+    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
     //TODO pass any config args to cfg object
 
     let mut repo = JrnRepo::init(cfg).expect("Failure init repo");

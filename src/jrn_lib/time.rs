@@ -1,28 +1,22 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub enum TimeStampFmt {
-    Default,
+pub struct TimeStampFmt(String);
+
+impl FromStr for TimeStampFmt {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(TimeStampFmt(String::from(s)))
+    }
 }
 
 impl TimeStampFmt {
-    fn get_fmt_str(&self) -> &str {
-        match self {
-            _Default => "%Y-%m-%d_%H:%M",
-        }
-    }
-
     pub fn get_time_string(&self) -> String {
-        let fmt_str: &str = self.get_fmt_str();
-        let time: DateTime<Local> = Local::now();
-        time.format(fmt_str).to_string()
-    }
-}
-
-impl Default for TimeStampFmt {
-    fn default() -> Self {
-        TimeStampFmt::Default
+       let time: DateTime<Local> = Local::now();
+        time.format(&self.0).to_string()
     }
 }
 

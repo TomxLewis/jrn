@@ -3,122 +3,69 @@ use super::*;
 use ron::de::from_bytes;
 use ron::ser::PrettyConfig;
 use ron::ser::Serializer;
-use serde::{Serialize, Deserialize, Deserializer};
-use serde::Serializer as SerdeSerializer;
+use serde::{Serialize, Deserialize};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::collections::BTreeMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Settings {
-    editor: String,
-    editor_args: Vec<String>,
-    timezone: UtcOffset,
-    timestamp_fmt: TimeStampFmt,
-    tag_start_char: char,
-    tag_deliminator: char,
-    config_local_tags: Vec<String>,
+    #[serde(flatten)]
+    map: BTreeMap<JrnSetting, String>
 }
 
-// TODO Manually implement Serialize and Deserialize
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(default)]
-pub struct SettingsFileResults {
-    editor: Option<String>,
-    editor_args: Option<Vec<String>>,
-    timezone: Option<UtcOffset>,
-    timestamp_fmt: Option<TimeStampFmt>,
-    tag_start_char: Option<char>,
-    tag_deliminator: Option<char>,
-    config_local_tags: Option<Vec<String>>,
+#[derive(Debug, PartialEq, Serialize, Deserialize, Hash, Eq, Ord, PartialOrd)]
+pub enum JrnSetting {
+    Editor,
+    EditorArgs,
+    TimeZone,
+    TimeStampFormat,
+    TagStartChar,
+    TagDeliminator,
+    ConfigLocalTags,
 }
 
-//impl<'de> Deserialize<'de> for OptionalConfig {
-//    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-//        D: Deserializer<'de> {
-//
-//        #[derive(Deserialize)]
-//        #[serde(field_identifier, rename_all = "snake_case")]
-//        enum Field {
-//            Editor,
-//            EditorArgs,
-//            Timezone,
-//            TimestampFmt,
-//            TagStartChar,
-//            TagDeliminator,
-//            ConfigLocalTags
-//        }
-//
-//    }
-//}
-
-impl Default for SettingsFileResults {
-    fn default() -> Self {
-        SettingsFileResults {
-            editor: None,
-            editor_args: None,
-            timezone: None,
-            timestamp_fmt: None,
-            tag_start_char: None,
-            tag_deliminator: None,
-            config_local_tags: None,
-        }
-    }
-}
-
-impl From<SettingsFileResults> for Settings {
-    fn from(opt: SettingsFileResults) -> Self {
-        Settings {
-            editor: opt.editor.unwrap_or(String::from("vim")),
-            editor_args: opt.editor_args.unwrap_or(vec!(String::from("+star"))),
-            timezone: opt.timezone.unwrap_or(UtcOffset::local()),
-            timestamp_fmt: opt.timestamp_fmt.unwrap_or_default(),
-            tag_start_char: opt.tag_start_char.unwrap_or('-'),
-            tag_deliminator: opt.tag_deliminator.unwrap_or('_'),
-            config_local_tags: opt.config_local_tags.unwrap_or(Vec::new()),
-        }
-    }
-}
-
-/// confusing cause changes you want to make here
-/// would instead be made in From<SettingsFileResults> for Settings
 impl Default for Settings {
     fn default() -> Self {
-        let opt = SettingsFileResults::default();
-        Settings::from(opt)
+        use JrnSetting::*;
+        let mut map = BTreeMap::new();
+        map.insert(Editor, String::from("vim"));
+        map.insert(EditorArgs, String::from("+star"));
+        map.insert(TimeZone, String::from("UTC"));
+        map.insert(TimeStampFormat, String::from("%Y-%m-%d_%H:%M"));
+        map.insert(TagStartChar, String::from("-"));
+        map.insert(TagDeliminator, String::from("_"));
+        Settings { map }
     }
 }
 
-impl SettingsFileResults {
+impl Settings {
+
+    /// convenience method for an empty settings object
+    fn empty() -> Self { Settings { map: BTreeMap::new() } }
+
     /// merge an other into this,
     /// favoring the config settings in self if found in both
-    pub fn merge(self, other: SettingsFileResults) -> Self {
-        SettingsFileResults {
-            editor: self.editor.or(other.editor),
-            editor_args: self.editor_args.or(other.editor_args),
-            timezone: self.timezone.or(other.timezone),
-            timestamp_fmt: self.timestamp_fmt.or(other.timestamp_fmt),
-            tag_start_char: self.tag_start_char.or(other.tag_start_char),
-            tag_deliminator: self.tag_deliminator.or(other.tag_deliminator),
-            config_local_tags: self.config_local_tags.or(other.config_local_tags),
+    pub fn merge(mut self, other: Settings) -> Self {
+        for (setting, value) in other.map {
+            //does it already exist in self?
+            if !self.map.contains_key(&setting) {
+                self.map.insert(setting, value);
+            }
         }
+        self
     }
 
     /// Tries to read config from file path,
-    /// returning Ok(SettingsFileResults::default()) if file not found,
-    /// essentially None
+    /// returning Ok(Settings) if found
+    /// returns Ok(Settings::empty()) if not found
     ///
-    /// returning JrnError on IoError
-    ///
-    /// '''
-    /// let non_existent_file = PathBuf::from("fake_file_name")
-    /// let return = SettingsFileResults::read_or_default(&non_existent_file);
-    /// assert!(return.is_ok());
-    /// '''
-    ///
-    pub fn read_or_default(path: &Path) -> Result<Self, JrnError> {
-        let mut result = SettingsFileResults::default();
+    /// returns JrnError on IoError
+    pub fn read(path: &Path) -> Result<Self, JrnError> {
+        let mut result = Settings::empty();
 
         if path.exists() {
             if let Ok(mut file) = File::open(path) {
@@ -143,9 +90,7 @@ impl SettingsFileResults {
         file.write_all(&mut serialization_result.as_bytes()).unwrap();
         Ok(())
     }
-}
 
-impl Settings {
     /// Loads any configuration from the env
     ///
     /// Will check the following locations
@@ -166,7 +111,7 @@ impl Settings {
     /// If no value is set for a config option the default is used
     ///
     pub fn find_or_default() -> Result<Self, JrnError> {
-        let mut working_cfg: SettingsFileResults = SettingsFileResults::default();
+        let mut working_cfg: Settings = Settings::empty();
         let optional_paths: Vec<Option<PathBuf>> = vec![dirs::config_dir(),
                                                         dirs::home_dir(),
                                                         std::env::current_dir().ok()];
@@ -183,11 +128,13 @@ impl Settings {
 
         // try to read from each, propagating errors, returning the most local config options if any
         for path_buf in paths_to_check {
-            let found = SettingsFileResults::read_or_default(&path_buf)?;
+            let found = Settings::read(&path_buf)?;
             working_cfg = working_cfg.merge(found);
         }
 
-        //if we found one return it, else default
+        //add any necessary but not found settings from the default
+        working_cfg = working_cfg.merge(Settings::default());
+
         Ok(Settings::from(working_cfg))
     }
 
@@ -195,23 +142,25 @@ impl Settings {
     /// returns Err if this fails
     pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
         let mut args: Vec<String> = Vec::new();
-        for arg in self.editor_args.clone() {
-            args.push(arg)
+
+        //push editor arguments
+        //TODO test
+        let editor_args = self.map.get(&JrnSetting::EditorArgs).unwrap().split(' ');
+        for arg in editor_args {
+            args.push(String::from(arg))
         }
 
-        //if no path don't worry
+        //push path if given
         if let Some(path) = path {
-            //check unicode validity of the path if it was given
-            let path_str = path.to_str();
-            if path_str.is_none() {
-                return Err(JrnError::kind(JrnErrorKind::UtfError))
+            //don't attempt if path contains invalid unicode
+            if let Some(path_str) = path.to_str() {
+                args.push(String::from(path_str));
             }
-            let path_str = path_str.unwrap();
-            args.push(String::from(path_str));
         }
 
-        //build command to send to os
-        let cmd = Command::new(&self.editor)
+        //build and send command to os
+        let editor = self.map.get(&JrnSetting::Editor).unwrap();
+        let cmd = Command::new(&editor)
             .args(args)
             .output()?;
 
@@ -224,7 +173,7 @@ impl Settings {
         let file_name = self.format_file_name(tags);
         let path_buf = PathBuf::from(file_name);
 
-        //return None if entry already exists
+        //return Err if entry already exists
         if path_buf.exists() {
             use std::io::{Error, ErrorKind};
             let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
@@ -237,18 +186,31 @@ impl Settings {
 
     /// formats the file name based on the format settings in this config
     fn format_file_name(&self, tags: Option<Vec<&str>>) -> String {
-        let mut file_name = self.timestamp_fmt.get_time_string();
+        let mut file_name = String::new();
 
-        file_name.push(self.tag_start_char);
+        //handle time
+        let time_format: TimeStampFmt = self.map.get(&JrnSetting::TimeStampFormat).unwrap().parse().unwrap();
+        let time_string = time_format.get_time_string();
+        file_name.push_str(&time_string);
 
-        for tag in &self.config_local_tags {
-            file_name.push(self.tag_deliminator);
-            file_name.push_str(tag);
+        let tag_start_char = self.map.get(&JrnSetting::TagStartChar).unwrap();
+        file_name.push_str(tag_start_char);
+
+        let tag_delim = self.map.get(&JrnSetting::TagDeliminator).unwrap();
+
+        if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
+            //TODO accept or document need for split char
+            let config_tags = config_tags.split(',');
+            for tag in config_local_tags {
+                file_name.push_str(tag_delim);
+                file_name.push_str(tag);
+            }
+
         }
 
         if let Some(tags) = tags {
             for tag in tags {
-                file_name.push(self.tag_deliminator);
+                file_name.push_str(tag_delim);
                 file_name.push_str(tag);
             }
         }
@@ -261,5 +223,11 @@ impl Settings {
 mod test {
     use super::*;
 
+    #[test]
+    fn write_default() {
+        let settings = Settings::default();
+        let path = PathBuf::from("test.jrnconfig");
+        settings.write(&path);
+    }
 }
 
