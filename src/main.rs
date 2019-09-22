@@ -2,6 +2,8 @@ extern crate clap;
 use clap::{Arg, ArgMatches, App, SubCommand};
 
 use jrn::*;
+use simplelog::{SimpleLogger, Config};
+use log::LevelFilter;
 
 fn clap_app<'a, 'b>() -> App<'a, 'b> {
     App::new("jrn")
@@ -38,8 +40,10 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
+    let logger = SimpleLogger::init(LevelFilter::Warn, Config::default()).unwrap();
+
     //TODO pass any config args to cfg object
+    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
 
     let mut repo = JrnRepo::init(cfg).expect("Failure init repo");
 
