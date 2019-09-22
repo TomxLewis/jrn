@@ -49,9 +49,14 @@ impl JrnRepo {
 
         let path = self.config.build_path(tags_ref)?;
 
+        let mut file = OpenOptions::new().write(true).create(true).open(&path)?;
+
         if let Some(text) = text {
-            let mut file = OpenOptions::new().write(true).create(true).open(&path)?;
             file.write(text.as_bytes())?;
+        }
+        else if !open_editor {
+            //create the file if not launching editor
+            file.write(&[])?;
         }
 
         if open_editor {
