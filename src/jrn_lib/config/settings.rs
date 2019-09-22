@@ -49,11 +49,27 @@ impl Settings {
 
     /// merge an other into this,
     /// favoring the config settings in self if found in both
-    pub fn merge(mut self, other: Settings) -> Self {
-        for (setting, value) in other.map {
-            //does it already exist in self?
-            if !self.map.contains_key(&setting) {
-                self.map.insert(setting, value);
+    fn merge(mut self, other: Settings) -> Self {
+        for (setting, mut value) in other.map {
+            match setting {
+                //if the setting is ConfigTags, merge
+                JrnSetting::ConfigLocalTags => {
+                    if !self.map.contains_key(&setting) {
+                        self.map.insert(setting, value);
+                    }
+                    else {
+                        //TODO dedupe tags
+                        let current = self.map.get(&setting).unwrap();
+                        value.push_str(&format!(",{}", current));
+                        self.map.insert(setting, value);
+                    }
+                }
+                //else if the setting already exists in self don't overwrite
+                _ => {
+                    if !self.map.contains_key(&setting) {
+                        self.map.insert(setting, value);
+                    }
+                }
             }
         }
         self
@@ -63,15 +79,14 @@ impl Settings {
     /// returning Ok(Settings) if found
     /// returns Ok(Settings::empty()) if not found
     ///
-    /// returns JrnError on IoError
-    pub fn read(path: &Path) -> Result<Self, JrnError> {
+    /// returns Err on IoError
+    fn read(path: &Path) -> Result<Self, JrnError> {
         let mut result = Settings::empty();
 
         if path.exists() {
             if let Ok(mut file) = File::open(path) {
                 let mut contents: Vec<u8> = Vec::new();
                 file.read_to_end(&mut contents)?;
-                //TODO fix impl of from_bytes
                 result = from_bytes(&contents)?;
             }
         }
@@ -81,6 +96,10 @@ impl Settings {
 
     /// Writes the struct to a path, truncating any existing file
     /// Returns Err when path is not writable
+    ///
+    /// currently only used for testing
+    ///
+    #[cfg(test)]
     fn write(&self, path: &Path) -> Result<(), JrnError> {
         let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
         let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
@@ -138,7 +157,7 @@ impl Settings {
         Ok(Settings::from(working_cfg))
     }
 
-    /// launches the editor based on the format settings in this config,
+    /// launches the editor based on the settings in this config,
     /// returns Err if this fails
     pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
         let mut args: Vec<String> = Vec::new();
@@ -169,7 +188,7 @@ impl Settings {
 
     /// formats the file name for a potential new entry
     /// returning Err if the file already exists
-    fn check_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
+    pub fn build_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
         let file_name = self.format_file_name(tags);
         let path_buf = PathBuf::from(file_name);
 
@@ -199,9 +218,9 @@ impl Settings {
         let tag_delim = self.map.get(&JrnSetting::TagDeliminator).unwrap();
 
         if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
-            //TODO accept or document need for split char
+            //TODO document need for split char
             let config_tags = config_tags.split(',');
-            for tag in config_local_tags {
+            for tag in config_tags {
                 file_name.push_str(tag_delim);
                 file_name.push_str(tag);
             }
