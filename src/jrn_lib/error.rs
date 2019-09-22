@@ -12,6 +12,7 @@ pub struct JrnError {
 pub enum JrnErrorKind {
     IOError,
     UtfError,
+    Regex,
 }
 
 impl std::error::Error for JrnError {}

@@ -9,7 +9,6 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::collections::HashSet;
 
 #[derive(Debug, PartialEq)]
 pub struct Settings {
@@ -92,7 +91,7 @@ impl Default for Settings {
 }
 
 impl SettingsFileResults {
-    /// merge an other OptionalConfig,
+    /// merge an other into this,
     /// favoring the config settings in self if found in both
     pub fn merge(self, other: SettingsFileResults) -> Self {
         SettingsFileResults {
@@ -122,16 +121,17 @@ impl SettingsFileResults {
         let mut result = SettingsFileResults::default();
 
         if path.exists() {
-            let mut file = File::open(path)?;
-            let mut contents: Vec<u8> = Vec::new();
-            file.read_to_end(&mut contents)?;
-            result = from_bytes(&contents)?;
+            if let Ok(mut file) = File::open(path) {
+                let mut contents: Vec<u8> = Vec::new();
+                file.read_to_end(&mut contents)?;
+                result = from_bytes(&contents)?;
+            }
         }
 
         Ok(result)
     }
 
-    /// Writes the config struct to a path, truncating any existing file
+    /// Writes the struct to a path, truncating any existing file
     /// Returns Err when path is not writable
     fn write(&self, path: &Path) -> Result<(), JrnError> {
         let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
@@ -172,7 +172,7 @@ impl Settings {
 
         // filter map possible config directories to config paths
         let paths_to_check: Vec<PathBuf> = optional_paths.into_iter()
-            .filter_map(|mut p: Option<PathBuf>| {
+            .filter_map(|p: Option<PathBuf>| {
                 p.map(|mut path_buf: PathBuf| {
                     path_buf.push(String::from(super::JRN_CONFIG_FILE_NAME));
                     path_buf

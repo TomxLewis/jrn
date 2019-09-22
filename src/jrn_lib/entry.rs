@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::fs::File;
-use std::io::{Write, Read};
+use std::io::Read;
 
-use super::Config;
+use super::Settings;
 
 /// the in memory representation of a jrn entry
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub struct JrnEntry {
 }
 
 impl JrnEntry {
-    pub fn new(cfg: &Config, tags: Option<Vec<String>>) -> Self {
+    pub fn new(settings: &Settings, tags: Option<Vec<String>>) -> Self {
         unimplemented!()
     }
 }

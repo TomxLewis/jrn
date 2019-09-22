@@ -28,25 +28,22 @@ impl Default for IgnorePatterns {
 impl IgnorePatterns {
     /// read an ignore file from a path
     /// returns empty JrnIgnore if no file is found at path
-    /// returning Err if the path can not be read
-    /// returns Err if any regex is ill-formatted
-    pub fn from_path(path: &Path) -> Result<Self, JrnError> {
+    pub fn from_path(path: &Path) -> Self {
         let mut result = IgnorePatterns::default();
 
         if path.exists() {
-            let mut buf = String::new();
-            let mut file = File::open(path)?;
-            file.read_to_string(&mut buf);
-            result.filters = buf.lines().map(|s| String::from(s)).collect();
-            result.initialized = !result.filters.is_empty();
+            if let Ok(mut file) = File::open(&path) {
+                let mut buf: String = String::new();
+                file.read_to_string(&mut buf).expect(&format!("Invalid utf in ignore file: {}", path.display()));
+                result.filters = buf.lines().map(|s| String::from(s)).collect();
+                result.initialized = !result.filters.is_empty();
+            }
         }
 
-        &result.init_regex();
-
-        Ok(result)
+        result
     }
 
-    /// merge two JrnIgnore objects into one
+    /// merge two patterns into one
     pub fn merge(mut self, other: IgnorePatterns) -> IgnorePatterns {
         for s in other.filters {
             self.filters.insert(s);
@@ -57,19 +54,22 @@ impl IgnorePatterns {
     }
 
     /// check rather a path should be ignored
-    pub fn ignore(&mut self, path: &Path) -> bool {
+    /// this returns Err only on upon being initialized with invalid regex
+    pub fn ignore(&mut self, path: &Path) -> Result<bool, JrnError> {
         if !self.initialized {
-            self.init_regex();
+            self.init_regex()?;
         }
         for r in &self.regex_list {
             if r.is_match(path.to_str().expect("Path is invalid unicode")) {
-                return true
+                return Ok(true)
             }
         }
 
-        false
+        Ok(false)
     }
 
+    /// builds the regexps in self
+    /// returning Err on failing to do so
     fn init_regex(&mut self) -> Result<(), JrnError> {
         self.regex_list.clear();
         for result in self.filters.iter().map(|s| Regex::new(s)) {

@@ -6,9 +6,7 @@ mod entry;
 
 //re-exports
 //i.e. the structs we want available in main.rs
-pub use config::Config;
+pub use config::Settings;
 pub use error::{JrnError, JrnErrorKind};
 pub use repo::JrnRepo;
 
-//statics
-static JRN_CONFIG_FILE_NAME: &'static str = ".jrnconfig";

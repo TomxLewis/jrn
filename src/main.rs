@@ -1,6 +1,5 @@
 extern crate clap;
-use clap::{Arg, ArgMatches, App, SubCommand, AppSettings};
-use std::io::Write;
+use clap::{Arg, ArgMatches, App, SubCommand};
 
 use jrn::*;
 
@@ -11,14 +10,15 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .about("Command Line journaling System that Integrates with git for version control.")
         .subcommand(SubCommand::with_name("new")
             .about("create a new jrn entry")
-            .arg(Arg::from_usage("-f --from [TEXT] 'the new entries contents'")
+            .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
+            .arg(Arg::from_usage("-n --note [TEXT] 'the new entries contents'")
                 .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
                 .takes_value(true))
             .arg(Arg::from_usage("-t, --tags [TAGS] 'tags in the new entry'")
                 .takes_value(true)
                 .multiple(true)))
-        .subcommand((SubCommand::with_name("tags")))
-        .subcommand((SubCommand::with_name("list")))
+        .subcommand(SubCommand::with_name("tags"))
+        .subcommand(SubCommand::with_name("list"))
         .subcommand(SubCommand::with_name("config")
             .about("Alters or inquires the current jrn configuration")
             .arg(Arg::with_name("list")
@@ -29,7 +29,7 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 
 fn main() {
     //init
-    let cfg = Config::find_or_default();
+    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
     let mut repo = JrnRepo::init(cfg).expect("Failure init repo");
 
     //process command line args
@@ -43,7 +43,7 @@ fn main() {
 
             //write out help message lazily if needed
             #[cfg(not(debug_assertions))]
-            clap_app().print_help();
+            clap_app().print_help().unwrap();
         }
     }
 }

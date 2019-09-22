@@ -20,6 +20,12 @@ impl TimeStampFmt {
     }
 }
 
+impl Default for TimeStampFmt {
+    fn default() -> Self {
+        TimeStampFmt::Default
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Ord, PartialOrd, PartialEq, Eq)]
 pub struct UtcOffset {
     local_minus_utc: i32,
