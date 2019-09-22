@@ -8,16 +8,16 @@ use crate::{JrnError, JrnErrorKind};
 
 
 #[derive(Debug)]
-pub struct JrnIgnore {
+pub struct IgnorePatterns {
     filters: HashSet<String>,
     // used to lazily populate the regex_list from filters
     initialized: bool,
     regex_list: Vec<Regex>,
 }
 
-impl Default for JrnIgnore {
+impl Default for IgnorePatterns {
     fn default() -> Self {
-        JrnIgnore {
+        IgnorePatterns {
             filters: HashSet::new(),
             initialized: true,
             regex_list: Vec::new(),
@@ -25,13 +25,13 @@ impl Default for JrnIgnore {
     }
 }
 
-impl JrnIgnore {
+impl IgnorePatterns {
     /// read an ignore file from a path
     /// returns empty JrnIgnore if no file is found at path
     /// returning Err if the path can not be read
     /// returns Err if any regex is ill-formatted
     pub fn from_path(path: &Path) -> Result<Self, JrnError> {
-        let mut result = JrnIgnore::default();
+        let mut result = IgnorePatterns::default();
 
         if path.exists() {
             let mut buf = String::new();
@@ -47,7 +47,7 @@ impl JrnIgnore {
     }
 
     /// merge two JrnIgnore objects into one
-    pub fn merge(mut self, other: JrnIgnore) -> JrnIgnore {
+    pub fn merge(mut self, other: IgnorePatterns) -> IgnorePatterns {
         for s in other.filters {
             self.filters.insert(s);
             //only need to change init state if other contains any entries

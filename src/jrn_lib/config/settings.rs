@@ -1,6 +1,10 @@
 use super::*;
 
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use ron::de::from_bytes;
+use ron::ser::PrettyConfig;
+use ron::ser::Serializer;
+use serde::{Serialize, Deserialize, Deserializer};
+use serde::Serializer as SerdeSerializer;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -8,7 +12,7 @@ use std::process::Command;
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq)]
-pub struct Config {
+pub struct Settings {
     editor: String,
     editor_args: Vec<String>,
     timezone: UtcOffset,
@@ -21,7 +25,7 @@ pub struct Config {
 // TODO Manually implement Serialize and Deserialize
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(default)]
-pub struct OptionalConfig {
+pub struct SettingsFileResults {
     editor: Option<String>,
     editor_args: Option<Vec<String>>,
     timezone: Option<UtcOffset>,
@@ -50,9 +54,9 @@ pub struct OptionalConfig {
 //    }
 //}
 
-impl Default for OptionalConfig {
+impl Default for SettingsFileResults {
     fn default() -> Self {
-        OptionalConfig {
+        SettingsFileResults {
             editor: None,
             editor_args: None,
             timezone: None,
@@ -64,9 +68,9 @@ impl Default for OptionalConfig {
     }
 }
 
-impl From<OptionalConfig> for Config {
-    fn from(opt: OptionalConfig) -> Self {
-        Config {
+impl From<SettingsFileResults> for Settings {
+    fn from(opt: SettingsFileResults) -> Self {
+        Settings {
             editor: opt.editor.unwrap_or(String::from("vim")),
             editor_args: opt.editor_args.unwrap_or(vec!(String::from("+star"))),
             timezone: opt.timezone.unwrap_or(UtcOffset::local()),
@@ -78,18 +82,20 @@ impl From<OptionalConfig> for Config {
     }
 }
 
-impl Default for Config {
+/// confusing cause changes you want to make here
+/// would instead be made in From<SettingsFileResults> for Settings
+impl Default for Settings {
     fn default() -> Self {
-        let opt = OptionalConfig::default();
-        Config::from(opt)
+        let opt = SettingsFileResults::default();
+        Settings::from(opt)
     }
 }
 
-impl OptionalConfig {
+impl SettingsFileResults {
     /// merge an other OptionalConfig,
     /// favoring the config settings in self if found in both
-    pub fn merge(self, other: OptionalConfig) -> Self {
-        OptionalConfig {
+    pub fn merge(self, other: SettingsFileResults) -> Self {
+        SettingsFileResults {
             editor: self.editor.or(other.editor),
             editor_args: self.editor_args.or(other.editor_args),
             timezone: self.timezone.or(other.timezone),
@@ -101,29 +107,34 @@ impl OptionalConfig {
     }
 
     /// Tries to read config from file path,
-    /// returning OptionalConfig::default() if file not found
+    /// returning Ok(SettingsFileResults::default()) if file not found,
+    /// essentially None
+    ///
+    /// returning JrnError on IoError
+    ///
+    /// '''
+    /// let non_existent_file = PathBuf::from("fake_file_name")
+    /// let return = SettingsFileResults::read_or_default(&non_existent_file);
+    /// assert!(return.is_ok());
+    /// '''
+    ///
     pub fn read_or_default(path: &Path) -> Result<Self, JrnError> {
-        use ron::de::from_bytes;
-
-        let mut cfg = OptionalConfig::default();
+        let mut result = SettingsFileResults::default();
 
         if path.exists() {
             let mut file = File::open(path)?;
             let mut contents: Vec<u8> = Vec::new();
             file.read_to_end(&mut contents)?;
-            cfg = from_bytes(&contents)?;
+            result = from_bytes(&contents)?;
         }
 
-        Ok(cfg)
+        Ok(result)
     }
 
     /// Writes the config struct to a path, truncating any existing file
     /// Returns Err when path is not writable
     fn write(&self, path: &Path) -> Result<(), JrnError> {
-        use ron::ser::PrettyConfig;
-        use ron::ser::Serializer;
         let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
-
         let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
         self.serialize(&mut serializer)?;
 
@@ -133,7 +144,7 @@ impl OptionalConfig {
     }
 }
 
-impl Config {
+impl Settings {
     /// Loads any configuration from the env
     ///
     /// Will check the following locations
@@ -154,7 +165,7 @@ impl Config {
     /// If no value is set for a config option the default is used
     ///
     pub fn find_or_default() -> Result<Self, JrnError> {
-        let mut working_cfg: OptionalConfig = OptionalConfig::default();
+        let mut working_cfg: SettingsFileResults = SettingsFileResults::default();
         let optional_paths: Vec<Option<PathBuf>> = vec![dirs::config_dir(),
                                                         dirs::home_dir(),
                                                         std::env::current_dir().ok()];
@@ -171,12 +182,12 @@ impl Config {
 
         // try to read from each, propagating errors, returning the most local config options if any
         for path_buf in paths_to_check {
-            let found = OptionalConfig::read_or_default(&path_buf)?;
+            let found = SettingsFileResults::read_or_default(&path_buf)?;
             working_cfg = working_cfg.merge(found);
         }
 
         //if we found one return it, else default
-        Ok(Config::from(working_cfg))
+        Ok(Settings::from(working_cfg))
     }
 
     /// launches the editor based on the format settings in this config,
