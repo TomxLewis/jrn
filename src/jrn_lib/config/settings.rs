@@ -45,7 +45,7 @@ impl Default for Settings {
 impl Settings {
     /// formats the file name for a potential new entry
     /// returning Err if the file already exists
-    pub fn build_path(&self, tags: Option<Vec<&str>>) -> Result<PathBuf, JrnError> {
+    pub fn build_path(&self, tags: Vec<&str>) -> Result<PathBuf, JrnError> {
         let file_name = self.format_file_name(tags);
         let path_buf = PathBuf::from(file_name);
 
@@ -140,7 +140,7 @@ impl Settings {
     fn empty() -> Self { Settings { map: BTreeMap::new() } }
 
     /// formats the file name based on the format settings in this config
-    fn format_file_name(&self, tags: Option<Vec<&str>>) -> String {
+    fn format_file_name(&self, tags: Vec<&str>) -> String {
         let mut file_name = String::new();
 
         //handle time
@@ -163,11 +163,9 @@ impl Settings {
 
         }
 
-        if let Some(tags) = tags {
-            for tag in tags {
-                file_name.push_str(tag_delim);
-                file_name.push_str(tag);
-            }
+        for tag in tags {
+            file_name.push_str(tag_delim);
+            file_name.push_str(tag);
         }
 
         file_name

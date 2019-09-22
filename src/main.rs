@@ -40,12 +40,16 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    let logger = SimpleLogger::init(LevelFilter::Warn, Config::default()).unwrap();
+    //init chosen logger
+    SimpleLogger::init(LevelFilter::Warn, Config::default()).unwrap();
 
+    //init Settings and IgnorePatterns from env
     //TODO pass any config args to cfg object
     let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
+    let ignore = IgnorePatterns::find_or_default();
 
-    let mut repo = JrnRepo::init(cfg).expect("Failure init repo");
+    //init repo
+    let mut repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
 
     //process command line args
     let matches = clap_app().get_matches();
@@ -71,4 +75,9 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     //tags passed as args to the program
     let tags: Option<Vec<String>> = args.values_of_lossy("tags");
     dbg!(&tags);
+
+    let quick: bool = args.is_present("quick");
+
+    repo.create_entry(tags, text, !quick).expect("Failed to write entry");
+
 }
