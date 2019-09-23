@@ -61,8 +61,11 @@ fn main() {
             dbg!(&matches);
 
             //write out help message lazily if needed
-            //#[cfg(not(debug_assertions))]
-            clap_app().print_help().unwrap();
+            #[cfg(not(debug_assertions))] 
+            {
+                clap_app().print_help().unwrap();
+                println!();
+            }
         }
     }
 }
