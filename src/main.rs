@@ -70,14 +70,11 @@ fn main() {
 fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     //text to put in new entry if any
     let text: Option<&str> = args.value_of("from");
-    dbg!(&text);
 
     //tags passed as args to the program
     let tags: Option<Vec<String>> = args.values_of_lossy("tags");
-    dbg!(&tags);
 
     let quick: bool = args.is_present("quick");
 
     repo.create_entry(tags, text, !quick).expect("Failed to write entry");
-
 }

@@ -132,8 +132,6 @@ impl Settings {
         let mut cmd = Command::new(&editor);
         cmd.args(args);
 
-        dbg!(&cmd);
-
         match cmd.spawn() {
             Ok(mut child) => {
                 child.wait().expect("Command not running");
