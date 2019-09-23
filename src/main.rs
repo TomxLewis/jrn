@@ -18,13 +18,12 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
             .multiple(true)
             .number_of_values(2))
         .subcommand(SubCommand::with_name("new")
-            //TODO implement sub-command "new"
-            .about("create a new jrn entry")
+            .about("Create a new jrn entry")
             .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
-            .arg(Arg::from_usage("-n --note [TEXT] 'the new entries contents'")
+            .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'")
                 .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
                 .takes_value(true))
-            .arg(Arg::from_usage("-t, --tags [TAGS] 'tags in the new entry'")
+            .arg(Arg::from_usage("-t, --tags [TAGS] 'Tags in the new entry'")
                 .takes_value(true)
                 .multiple(true)))
         .subcommand(SubCommand::with_name("tags"))
@@ -35,7 +34,7 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
             //TODO implement sub-command "config"
             .about("Alters or inquires the current jrn configuration")
             .arg(Arg::with_name("list")
-                .help("lists all config options and their values")
+                .help("Lists all config options and their values")
                 .short("l")
                 .long("list")))
 }
@@ -74,11 +73,10 @@ fn main() {
 fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     //text to put in new entry if any
     let text: Option<&str> = args.value_of("from");
-
     //tags passed as args to the program
     let tags: Option<Vec<String>> = args.values_of_lossy("tags");
+    //should open editor?
+    let open_editor: bool = !args.is_present("quick");
 
-    let quick: bool = args.is_present("quick");
-
-    repo.create_entry(tags, text, !quick).expect("Failed to write entry");
+    repo.create_entry(tags, text, open_editor).expect("Failed to write entry");
 }
