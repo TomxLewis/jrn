@@ -165,7 +165,9 @@ impl Settings {
             //TODO document need for split char
             let config_tags = config_tags.split(',');
             for tag in config_tags {
-                tags.push(tag);
+                if tag != "" {
+                    tags.push(tag);
+                }
             }
         }
 

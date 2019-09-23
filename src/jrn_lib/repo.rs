@@ -2,8 +2,7 @@ use super::entry::JrnEntry;
 use super::{IgnorePatterns, Settings, JrnError};
 use std::collections::HashMap;
 use std::io::Write;
-use std::io;
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
@@ -49,14 +48,20 @@ impl JrnRepo {
 
         let path = self.config.build_path(tags_ref)?;
 
-        let mut file = OpenOptions::new().write(true).create(true).open(&path)?;
+        let mut file: Option<File> = None;
+
+        if text.is_some() || !open_editor {
+            //create the file
+            let afile = OpenOptions::new().write(true).create(true).open(&path)?;
+            file = Some(afile);
+        }
 
         if let Some(text) = text {
-            file.write(text.as_bytes())?;
+            file.unwrap().write(text.as_bytes())?;
         }
         else if !open_editor {
             //create the file if not launching editor
-            file.write(&[])?;
+            file.unwrap().write(&[])?;
         }
 
         if open_editor {
@@ -85,7 +90,7 @@ impl JrnRepo {
     /// display entries to std::out
     /// that match a provided filter
     pub fn display_entries(&self, filter: &impl Fn(&JrnEntry) -> bool) -> Result<(), JrnError> {
-        let stdout = io::stdout();
+        let stdout = std::io::stdout();
         let mut handle = stdout.lock();
         for entry in &self.entries {
             if filter(&entry) {
