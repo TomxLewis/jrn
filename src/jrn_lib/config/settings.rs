@@ -44,20 +44,10 @@ impl Default for Settings {
 
 impl Settings {
     /// formats the file name for a potential new entry
-    /// returning Err if the file already exists
-    pub fn build_path(&self, tags: Vec<&str>) -> Result<PathBuf, JrnError> {
+    pub fn build_path(&self, tags: Vec<&str>) -> PathBuf {
         let file_name = self.format_file_name(tags);
         let path_buf = PathBuf::from(file_name);
-
-        //return Err if entry already exists
-        if path_buf.exists() {
-            use std::io::{Error, ErrorKind};
-            let boxed_err = Box::new(Error::from(ErrorKind::AlreadyExists));
-            Err(JrnError::with_cause(boxed_err, JrnErrorKind::IOError))
-        }
-        else {
-            Ok(path_buf)
-        }
+        path_buf
     }
 
     /// Loads any configuration from the env
@@ -132,14 +122,8 @@ impl Settings {
         let mut cmd = Command::new(&editor);
         cmd.args(args);
 
-        match cmd.spawn() {
-            Ok(mut child) => {
-                child.wait().expect("Command not running");
-            }
-            Err(e) => {
-                return Err(JrnError::with_cause(Box::new(e), JrnErrorKind::IOError))
-            }
-        }
+        let mut child = cmd.spawn().map_err(|_| JrnError::EditorNotFound)?;
+        child.wait()?;
         Ok(())
     }
 

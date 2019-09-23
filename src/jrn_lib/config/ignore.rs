@@ -1,12 +1,12 @@
-use log::{warn};
-use regex::Regex;
 use std::collections::HashSet;
-use std::path::Path;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
-use crate::{JrnError, JrnErrorKind};
+use log::warn;
+use regex::Regex;
 
+use crate::JrnError;
 
 #[derive(Debug)]
 pub struct IgnorePatterns {
@@ -126,8 +126,9 @@ impl IgnorePatterns {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use std::path::PathBuf;
+
+    use super::*;
 
     #[test]
     fn ignore_git() {

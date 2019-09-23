@@ -46,7 +46,7 @@ impl JrnRepo {
         let tags = tags.unwrap_or(Vec::new());
         let tags_ref: Vec<&str> = tags.iter().map(|f| f.as_str()).collect();
 
-        let path = self.config.build_path(tags_ref)?;
+        let path = self.config.build_path(tags_ref);
 
         let mut file: Option<File> = None;
 
