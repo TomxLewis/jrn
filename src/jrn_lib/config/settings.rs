@@ -127,6 +127,12 @@ impl Settings {
         Ok(())
     }
 
+    /// reads an entry from a path, propagating errors
+    pub fn read_entry(path: &Path) -> Result<JrnEntry, JrnError> {
+        let str = path.to_str().ok_or(JrnError::InvalidUnicode)?;
+        unimplemented!()
+    }
+
     /// convenience method for an empty settings object
     fn empty() -> Self { Settings { map: BTreeMap::new() } }
 
