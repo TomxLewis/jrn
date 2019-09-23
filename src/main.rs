@@ -1,5 +1,5 @@
 extern crate clap;
-use clap::{Arg, ArgMatches, App, SubCommand};
+use clap::{Arg, ArgMatches, App, AppSettings, SubCommand};
 
 use jrn::*;
 use simplelog::{SimpleLogger, Config};
@@ -8,6 +8,7 @@ use log::LevelFilter;
 fn clap_app<'a, 'b>() -> App<'a, 'b> {
     App::new("jrn")
         .version("0.1.0")
+        .setting(AppSettings::VersionlessSubcommands)
         .author("Tom Lewis <tomxlewis@gmail.com")
         .about("Command Line journaling System that Integrates with git for version control.")
         .arg(Arg::from_usage("-c --config [OPTION]=[VALUE]\"\" 'Set a configuration parameter for this run only'")
