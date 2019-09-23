@@ -4,8 +4,7 @@ mod settings;
 //imports
 use super::*;
 use super::entry::JrnEntry;
-use super::time::UtcOffset;
-use super::time::TimeStampFmt;
+use super::time::TimeStamp;
 
 //exports
 pub use settings::Settings;

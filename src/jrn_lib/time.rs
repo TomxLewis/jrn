@@ -1,44 +1,66 @@
 use chrono::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+use std::path::Path;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct TimeStampFmt(String);
+static TIMESTAMP_FMT: &'static str = "%Y-%m-%d_%H:%M";
 
-impl FromStr for TimeStampFmt {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(TimeStampFmt(String::from(s)))
-    }
+pub struct TimeStamp {
+    inner: NaiveDateTime,
 }
 
-impl TimeStampFmt {
-    pub fn get_time_string(&self) -> String {
-       let time: DateTime<Local> = Local::now();
-        time.format(&self.0).to_string()
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Ord, PartialOrd, PartialEq, Eq)]
-pub struct UtcOffset {
-    local_minus_utc: i32,
-}
-
-impl UtcOffset {
-    pub fn local() -> UtcOffset {
-        let local_time: DateTime<Local> = Local::now();
-        let local_minus_utc = local_time.offset().local_minus_utc();
-        UtcOffset {
-            local_minus_utc
+impl TimeStamp {
+    pub fn now() -> Self {
+        let dt: DateTime<Local> = Local::now();
+        let ndt: NaiveDateTime = dt.naive_local();
+        TimeStamp {
+            inner: ndt,
         }
     }
+
+    pub fn to_string(&self) -> String {
+        self.inner.format(TIMESTAMP_FMT).to_string()
+    }
+
+    /// returns timestamp prefixing the filepath, if found
+    pub fn from_filename_prefix(path: &Path) -> Option<Self> {
+        if let Some(file_name) = path.file_name() {
+            if let Some(as_str) = file_name.to_str() {
+                if as_str.len() >= 16 {
+                    let timestamp_str = &as_str[0..15];
+                    return TimeStamp::from_str(timestamp_str)
+                }
+            }
+        }
+        None
+    }
+
+    fn from_str(s: &str) -> Option<Self> {
+        NaiveDateTime::parse_from_str(s, TIMESTAMP_FMT).ok().map(|dt| TimeStamp { inner: dt })
+    }
+
 }
 
-impl From<&FixedOffset> for UtcOffset {
-    fn from(offset: &FixedOffset) -> Self {
-        UtcOffset {
-            local_minus_utc: offset.local_minus_utc(),
-        }
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn from_str() {
+        let str = "2020-12-12_12:12";
+        let result = TimeStamp::from_str(str);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn from_filename_too_short() {
+        let path = Path::new("2012");
+        let result = TimeStamp::from_filename_prefix(path);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn from_start_of_filename() {
+        let path = Path::new("2012-12-12_12:12_Some_Tags");
+        let result = TimeStamp::from_filename_prefix(path);
+        assert!(result.is_some());
     }
 }

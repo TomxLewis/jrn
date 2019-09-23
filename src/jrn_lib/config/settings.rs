@@ -21,8 +21,6 @@ pub struct Settings {
 pub enum JrnSetting {
     Editor,
     EditorArgs,
-    TimeZone,
-    TimeStampFormat,
     TagStartChar,
     TagDeliminator,
     ConfigLocalTags,
@@ -34,8 +32,6 @@ impl Default for Settings {
         let mut map = BTreeMap::new();
         map.insert(Editor, String::from("vim"));
         map.insert(EditorArgs, String::from("+star"));
-        map.insert(TimeZone, String::from("UTC"));
-        map.insert(TimeStampFormat, String::from("%Y-%m-%d_%H:%M"));
         map.insert(TagStartChar, String::from("-"));
         map.insert(TagDeliminator, String::from("_"));
         Settings { map }
@@ -141,8 +137,8 @@ impl Settings {
         let mut file_name = String::new();
 
         //handle time
-        let time_format: TimeStampFmt = self.map.get(&JrnSetting::TimeStampFormat).unwrap().parse().unwrap();
-        let time_string = time_format.get_time_string();
+        let ts = TimeStamp::now();
+        let time_string = ts.to_string();
         file_name.push_str(&time_string);
 
         //handle tags
