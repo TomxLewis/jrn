@@ -53,12 +53,14 @@ impl IgnorePatterns {
         debug_assert!(self.initialized);
 
         for r in &self.regex_list {
-            if let Some(path) = path.to_str() {
-                if r.is_match(path) {
-                    return true
+            if let Some(os_str) = path.file_name() {
+                if let Some(p) = os_str.to_str() {
+                    if r.is_match(p) {
+                        return true
+                    }
+                } else {
+                    warn!("Invalid UTF8, skipping path: {:?}", path);
                 }
-            } else {
-                warn!("Invalid UTF8, skipping path: {:?}", path);
             }
         }
 
@@ -130,10 +132,27 @@ mod test {
 
     use super::*;
 
+    //TODO move default to a lazy static ref
+
+
     #[test]
-    fn ignore_git() {
-        let path = PathBuf::from(".git");
-        let ignore = IgnorePatterns::find_or_default();
-        assert!(ignore.matches(&path));
+    fn default_ignores_git() {
+        let path = Path::new(".git");
+        let default = IgnorePatterns::find_or_default();
+        assert!(default.matches(path));
+    }
+
+    #[test]
+    fn default_ignores_git_submodule() {
+        let path = Path::new("somedir/.git");
+        let default = IgnorePatterns::find_or_default();
+        assert!(default.matches(path));
+    }
+
+    #[test]
+    fn default_does_not_ignore_random() {
+        let path = Path::new("somedir/should_not_be_ignored");
+        let default = IgnorePatterns::find_or_default();
+        assert!(!default.matches(path));
     }
 }
