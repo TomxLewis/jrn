@@ -39,12 +39,6 @@ impl Default for Settings {
 }
 
 impl Settings {
-    /// formats the file name for a potential new entry
-    pub fn build_path(&self, tags: Vec<&str>) -> PathBuf {
-        let file_name = self.format_file_name(tags);
-        let path_buf = PathBuf::from(file_name);
-        path_buf
-    }
 
     /// Loads any configuration from the env
     ///
@@ -153,33 +147,6 @@ impl Settings {
 
     /// convenience method for an empty settings object
     fn empty() -> Self { Settings { map: BTreeMap::new() } }
-
-    /// formats the file name based on the format settings in this config
-    fn format_file_name(&self, tags: Vec<&str>) -> String {
-        let mut file_name = String::new();
-        let tag_start_char = self.get_tag_start();
-        let tag_delim = self.get_tag_deliminator();
-
-        //handle time
-        let ts = TimeStamp::now();
-        let time_string = ts.to_string();
-        file_name.push_str(&time_string);
-
-        //gather all tags
-        let mut tags = tags.clone();
-        tags.append(&mut self.get_config_tags());
-
-        if !tags.is_empty() {
-            file_name.push_str(tag_start_char);
-        }
-
-        for tag in tags {
-            file_name.push_str(tag_delim);
-            file_name.push_str(tag);
-        }
-
-        file_name
-    }
 
     /// merge an other into this,
     /// favoring the config settings in self if found in both
