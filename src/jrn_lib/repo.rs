@@ -3,7 +3,7 @@ use super::{IgnorePatterns, Settings, TimeStamp, JrnError};
 use std::collections::HashMap;
 use std::io::Write;
 use std::fs::{File, OpenOptions};
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
@@ -100,6 +100,12 @@ impl JrnRepo {
         Ok(())
     }
 
+    /// reads an entry from a path, propagating errors
+    pub fn read_entry(path: &Path) -> Result<JrnEntry, JrnError> {
+        let str = path.to_str().ok_or(JrnError::InvalidUnicode)?;
+        unimplemented!()
+    }
+
     /// formats the file name for a potential new entry
     fn build_path(&self, tags: Vec<&str>) -> PathBuf {
         let file_name = self.format_file_name(tags);
@@ -120,7 +126,7 @@ impl JrnRepo {
 
         //gather all tags
         let mut tags = tags.clone();
-        tags.append(&mut self.config.get_config_tags());
+        tags.append(&mut self.config.get_tags());
 
         if !tags.is_empty() {
             file_name.push_str(tag_start_char);

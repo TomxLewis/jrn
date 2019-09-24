@@ -87,6 +87,28 @@ impl Settings {
         Ok(Settings::from(working_cfg))
     }
 
+    pub fn get_tag_deliminator(&self) -> &str {
+        self.map.get(&JrnSetting::TagDeliminator).unwrap()
+    }
+
+    pub fn get_tag_start(&self) -> &str {
+        self.map.get(&JrnSetting::TagStart).unwrap()
+    }
+
+    pub fn get_tags(&self) -> Vec<&str> {
+        let mut result = Vec::new();
+        if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
+            //TODO document need for split char
+            let config_tags = config_tags.split(',');
+            for tag in config_tags {
+                if tag != "" {
+                    result.push(tag);
+                }
+            }
+        }
+        result
+    }
+
     /// launches the editor based on the settings in this config,
     /// returns Err if this fails
     pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
@@ -117,33 +139,6 @@ impl Settings {
         Ok(())
     }
 
-    /// reads an entry from a path, propagating errors
-    pub fn read_entry(path: &Path) -> Result<JrnEntry, JrnError> {
-        let str = path.to_str().ok_or(JrnError::InvalidUnicode)?;
-        unimplemented!()
-    }
-
-    pub fn get_tag_start(&self) -> &str {
-        self.map.get(&JrnSetting::TagStart).unwrap()
-    }
-
-    pub fn get_tag_deliminator(&self) -> &str {
-        self.map.get(&JrnSetting::TagDeliminator).unwrap()
-    }
-
-    pub fn get_config_tags(&self) -> Vec<&str> {
-        let mut result = Vec::new();
-        if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
-            //TODO document need for split char
-            let config_tags = config_tags.split(',');
-            for tag in config_tags {
-                if tag != "" {
-                    result.push(tag);
-                }
-            }
-        }
-        result
-    }
 
     /// convenience method for an empty settings object
     fn empty() -> Self { Settings { map: BTreeMap::new() } }
@@ -176,7 +171,7 @@ impl Settings {
         self
     }
 
-    /// Tries to read config from file path,
+    /// Tries to read self from file path,
     /// returning Ok(Settings) if found
     /// returns Ok(Settings::empty()) if not found
     ///
