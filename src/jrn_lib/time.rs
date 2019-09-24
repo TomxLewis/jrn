@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 use std::path::Path;
 
-static TIMESTAMP_FMT: &'static str = "%Y-%m-%d_%H:%M";
+static TIMESTAMP_FMT: &'static str = "%Y-%m-%d_%H%M";
 
 pub struct TimeStamp {
     inner: NaiveDateTime,
@@ -42,10 +42,20 @@ impl TimeStamp {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::fs::File;
+
+    #[test]
+    fn can_write_timestamp() {
+        let timestamp = TimeStamp::now().to_string();
+        let path = Path::new(&timestamp);
+        File::create(&path);
+        assert!(&path.exists());
+        std::fs::remove_file(&path);
+    }
 
     #[test]
     fn from_str() {
-        let str = "2020-12-12_12:12";
+        let str = "2020-12-12_1212";
         let result = TimeStamp::from_str(str);
         assert!(result.is_some());
     }
@@ -59,8 +69,9 @@ mod test {
 
     #[test]
     fn from_start_of_filename() {
-        let path = Path::new("2012-12-12_12:12_Some_Tags");
-        let result = TimeStamp::from_filename_prefix(path);
-        assert!(result.is_some());
+        let path = Path::new("2012-12-12_1212_Some_Tags");
+        let result = TimeStamp::from_filename_prefix(path).unwrap();
+        let ts = NaiveDate::from_ymd(2012, 12, 12).and_hms(12, 12, 0);
+        assert_eq!(result.inner, ts);
     }
 }
