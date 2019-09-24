@@ -2,7 +2,7 @@ use super::entry::JrnEntry;
 use super::{IgnorePatterns, Settings, TimeStamp, JrnError};
 use std::collections::HashMap;
 use std::io::Write;
-use std::fs::{File, OpenOptions};
+use std::fs::{self, DirEntry, File, OpenOptions};
 use std::path::{PathBuf, Path};
 
 /// in memory knowledge of JrnRepo on disk
@@ -24,7 +24,7 @@ impl JrnRepo {
     /// will not return Err if unable to read files in dir
     pub fn init(config: Settings, ignore: IgnorePatterns) -> Result<Self, JrnError> {
         //TODO
-        //list all files in the directory
+        //list all files in the directory that are not ignored
         //filter all that have valid jrn formatting
         //populate self.entries with found entries
         //populate self.tags with found tags
@@ -138,5 +138,16 @@ impl JrnRepo {
         }
 
         file_name
+    }
+
+    fn visit_recursively(&self, dir: &Path, f: &impl Fn(&DirEntry)) {
+        if self.ignore.matches(dir) {
+            return
+        }
+        
+        if dir.is_dir() {
+            for entry in fs::read_dir(dir) {
+            }
+        }
     }
 }
