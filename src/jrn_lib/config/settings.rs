@@ -21,7 +21,7 @@ pub struct Settings {
 pub enum JrnSetting {
     Editor,
     EditorArgs,
-    TagStartChar,
+    TagStart,
     TagDeliminator,
     ConfigLocalTags,
 }
@@ -32,7 +32,7 @@ impl Default for Settings {
         let mut map = BTreeMap::new();
         map.insert(Editor, String::from("vim"));
         map.insert(EditorArgs, String::from("+star"));
-        map.insert(TagStartChar, String::from("-"));
+        map.insert(TagStart, String::from("-"));
         map.insert(TagDeliminator, String::from("_"));
         Settings { map }
     }
@@ -129,33 +129,45 @@ impl Settings {
         unimplemented!()
     }
 
+    pub fn get_tag_start(&self) -> &str {
+        self.map.get(&JrnSetting::TagStart).unwrap()
+    }
+
+    pub fn get_tag_deliminator(&self) -> &str {
+        self.map.get(&JrnSetting::TagDeliminator).unwrap()
+    }
+
+    pub fn get_config_tags(&self) -> Vec<&str> {
+        let mut result = Vec::new();
+        if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
+            //TODO document need for split char
+            let config_tags = config_tags.split(',');
+            for tag in config_tags {
+                if tag != "" {
+                    result.push(tag);
+                }
+            }
+        }
+        result
+    }
+
     /// convenience method for an empty settings object
     fn empty() -> Self { Settings { map: BTreeMap::new() } }
 
     /// formats the file name based on the format settings in this config
     fn format_file_name(&self, tags: Vec<&str>) -> String {
         let mut file_name = String::new();
+        let tag_start_char = self.get_tag_start();
+        let tag_delim = self.get_tag_deliminator();
 
         //handle time
         let ts = TimeStamp::now();
         let time_string = ts.to_string();
         file_name.push_str(&time_string);
 
-        //handle tags
-        let tag_start_char = self.map.get(&JrnSetting::TagStartChar).unwrap();
-        let tag_delim = self.map.get(&JrnSetting::TagDeliminator).unwrap();
-
         //gather all tags
         let mut tags = tags.clone();
-        if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
-            //TODO document need for split char
-            let config_tags = config_tags.split(',');
-            for tag in config_tags {
-                if tag != "" {
-                    tags.push(tag);
-                }
-            }
-        }
+        tags.append(&mut self.get_config_tags());
 
         if !tags.is_empty() {
             file_name.push_str(tag_start_char);
