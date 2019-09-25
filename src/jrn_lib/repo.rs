@@ -16,9 +16,13 @@ pub struct JrnRepo {
 }
 
 impl JrnRepo {
-    /// initializes the repo in the current working dir
-    /// by collecting all journal entries in files matching [Config] standards
-    /// and reading their Tags
+    /// Initializes the repo in the current working dir
+    ///
+    /// This is done by collecting all journal entries in current directory and subdirectories
+    /// that fit the settings from the environments config (~/.jrnconfig, ./.jrnconfig ...)
+    ///
+    /// JrnEntry filepaths are formattted
+    /// The date and tags are processed from the entires file path yyyy-mm-dd_hhmm{}Tag1{}Tag2{}...TagN
     ///
     /// returning Err if unable to write new entries
     /// will not return Err if unable to read files in dir
