@@ -14,7 +14,7 @@ use std::ffi::OsString;
 pub struct JrnEntry {
     creation_time: TimeStamp,
     tags: Vec<String>,
-    path: PathBuf,
+    file_name: String,
 }
 
 impl JrnEntry {
@@ -47,11 +47,11 @@ impl JrnEntry {
 
                 let creation_time = TimeStamp::from_ymdhm(year, month, day, hr, min);
                 let tags: Vec<String> = tag_str.split('_').map(|s| String::from(s)).collect();
-                let relative_path: PathBuf = path.canonicalize().unwrap();
+                let file_name: String = String::from(path.file_name().unwrap().to_str().unwrap());
                 let entry = JrnEntry {
                     creation_time,
                     tags,
-                    path: relative_path
+                    file_name,
                 };
                 return Some(entry)
             }
@@ -64,10 +64,14 @@ impl JrnEntry {
 impl std::fmt::Display for JrnEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         //write the filepath
-        writeln!(f, "{:?}", self.path)?;
+        writeln!(f, "{}", self.file_name)?;
+        for i in 0..self.file_name.chars().count() {
+            write!(f, "-")?;
+        }
+        writeln!(f, "")?;
 
         //write the contents of the file
-        let mut file = File::open(&self.path).expect("File Not Found");
+        let mut file = File::open(Path::new(&self.file_name)).expect("File Not Found");
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
         writeln!(f, "{}", contents)?;
@@ -82,7 +86,7 @@ pub struct JrnEntryFilter {
 
 impl JrnEntryFilter {
     pub fn into_filter(self) -> Box<impl Fn(&JrnEntry) -> bool> {
-        Box::new(move |entry: &JrnEntry| self.regex.is_match(entry.path.to_str().unwrap()))
+        Box::new(move |entry: &JrnEntry| self.regex.is_match(&entry.file_name))
     }
 
     pub fn from_pattern(re: &str) -> Result<Self, JrnError> {
