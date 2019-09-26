@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::fs::{self, DirEntry, File, OpenOptions};
 use std::path::{PathBuf, Path};
+use crate::jrn_lib::entry::JrnEntryFilter;
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
@@ -92,8 +93,15 @@ impl JrnRepo {
     }
 
     /// display entries to std::out
+    /// that match the provided string
+    pub fn list_entry_matches(&self, pattern: &str) -> Result<(), JrnError> {
+        let filter = JrnEntryFilter::from_pattern(pattern)?.into_filter();
+        self.list_entries(&filter)
+    }
+
+    /// display entries to std::out
     /// that match a provided filter
-    pub fn display_entries(&self, filter: &impl Fn(&JrnEntry) -> bool) -> Result<(), JrnError> {
+    pub fn list_entries<T : Fn(&JrnEntry) -> bool>(&self, filter: &T) -> Result<(), JrnError> {
         let stdout = std::io::stdout();
         let mut handle = stdout.lock();
         for entry in &self.entries {

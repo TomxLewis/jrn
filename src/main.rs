@@ -28,7 +28,11 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
                 .multiple(true)))
         .subcommand(SubCommand::with_name("tags"))
             //TODO define sub-command "tags"
-        .subcommand(SubCommand::with_name("list"))
+        .subcommand(SubCommand::with_name("list")
+                .about("List entries")
+                .arg(Arg::from_usage("-m --match [MATCH] 'Specify jrn entries by partial timestamp or tag'")
+                    .long_help("If no entries are found containing the STRING, the program simply returns")
+                    .takes_value(true)))
             //TODO implement sub-command "list"
         .subcommand(SubCommand::with_name("config")
             //TODO implement sub-command "config"
@@ -56,12 +60,13 @@ fn main() {
 
     match matches.subcommand() {
         ("new", Some(args)) => new(args, &mut repo),
+        ("list", Some(args)) => list(args, &mut repo),
         _ => {
             #[cfg(debug_assertions)]
             dbg!(&matches);
 
             //write out help message lazily if needed
-            #[cfg(not(debug_assertions))] 
+            //#[cfg(not(debug_assertions))]
             {
                 clap_app().print_help().unwrap();
                 println!();
@@ -79,4 +84,9 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     let open_editor: bool = !args.is_present("quick");
 
     repo.create_entry(tags, text, open_editor).expect("Failed to write entry");
+}
+
+fn list(args: &ArgMatches, repo: &mut JrnRepo) {
+    let pattern: &str = args.value_of("match").unwrap_or(r".*");
+    repo.list_entry_matches(pattern).unwrap()
 }

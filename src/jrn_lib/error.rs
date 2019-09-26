@@ -34,3 +34,9 @@ impl From<ron::de::Error> for JrnError {
         JrnError::Serialization(Box::new(err))
     }
 }
+
+impl From<regex::Error> for JrnError {
+    fn from(err: regex::Error) -> Self {
+        JrnError::InvalidRegex
+    }
+}
