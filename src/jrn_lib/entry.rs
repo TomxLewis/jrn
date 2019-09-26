@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
 
@@ -14,7 +14,7 @@ pub struct JrnEntry {
 }
 
 impl JrnEntry {
-    pub fn new(settings: &Settings, tags: Option<Vec<String>>) -> Self {
+    pub fn from(settings: &Settings, path: &Path) -> Self {
         unimplemented!()
     }
 }
@@ -39,8 +39,7 @@ pub struct JrnEntryFilter {
 }
 
 impl JrnEntryFilter {
-
-    pub fn into_filter(self) -> Box<impl Fn(&JrnEntry) -> bool> {
+    pub fn into_filter(self) -> Box<Fn(&JrnEntry) -> bool> {
         Box::new(move |entry: &JrnEntry| self.regex.is_match(entry.relative_path.to_str().unwrap()))
     }
 

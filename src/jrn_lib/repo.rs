@@ -1,3 +1,5 @@
+use lazy_static::lazy_static;
+use regex::Regex;
 use super::entry::JrnEntry;
 use super::{IgnorePatterns, Settings, TimeStamp, JrnError};
 use std::collections::HashMap;
@@ -101,7 +103,7 @@ impl JrnRepo {
 
     /// display entries to std::out
     /// that match a provided filter
-    pub fn list_entries<T : Fn(&JrnEntry) -> bool>(&self, filter: &T) -> Result<(), JrnError> {
+    pub fn list_entries(&self, filter: impl Fn(&JrnEntry) -> bool) -> Result<(), JrnError> {
         let stdout = std::io::stdout();
         let mut handle = stdout.lock();
         for entry in &self.entries {
@@ -112,9 +114,32 @@ impl JrnRepo {
         Ok(())
     }
 
-    /// reads an entry from a path, propagating errors
-    pub fn read_entry(path: &Path) -> Result<JrnEntry, JrnError> {
+    /// tries to reads an entry from a path, propagating errors
+    fn read_entry(path: &Path) -> Result<JrnEntry, JrnError> {
         let str = path.to_str().ok_or(JrnError::InvalidUnicode)?;
+        dbg!(str);
+
+        lazy_static!(
+            static ref RE: Regex = Regex::new(r"(?x) # allows insignificant whitespace and comments
+            (?P<year>\d{4})
+            -
+            (?P<month>\d{2})
+            -
+            (?P<day>\d{2})
+            _
+            (?P<hr>\d{2})
+            (?P<min>\d{2})
+            -? # optional tag start
+            (?P<tags>.*)
+            ").unwrap()
+        );
+
+        if let Some(captures) = RE.captures(str) {
+            let year: i32 = &captures.name("year").unwrap().parse().unwrap();
+            let month: u32 = &captures.name("month").unwrap().parse().unwrap();
+            let day: u32 = &captures.name("day").unwrap().parse().unwrap();
+        }
+
         unimplemented!()
     }
 
