@@ -3,6 +3,7 @@ use std::path::Path;
 
 static TIMESTAMP_FMT: &'static str = "%Y-%m-%d_%H%M";
 
+#[derive(Debug)]
 pub struct TimeStamp {
     inner: NaiveDateTime,
 }
@@ -13,6 +14,14 @@ impl TimeStamp {
         let ndt: NaiveDateTime = dt.naive_local();
         TimeStamp {
             inner: ndt,
+        }
+    }
+
+    pub fn from_ymdhm(year: i32, month: u32, day: u32, hour: u32, minute:u32) -> Self {
+        let date = NaiveDate::from_ymd(year, month, day);
+        let ndt = date.and_hms(hour, minute, 0);
+        TimeStamp {
+            inner: ndt
         }
     }
 

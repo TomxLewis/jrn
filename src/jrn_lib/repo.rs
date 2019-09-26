@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Regex, Captures};
 use super::entry::JrnEntry;
 use super::{IgnorePatterns, Settings, TimeStamp, JrnError};
 use std::collections::HashMap;
@@ -7,6 +7,7 @@ use std::io::Write;
 use std::fs::{self, DirEntry, File, OpenOptions};
 use std::path::{PathBuf, Path};
 use crate::jrn_lib::entry::JrnEntryFilter;
+use std::borrow::Borrow;
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
@@ -30,17 +31,15 @@ impl JrnRepo {
     /// returning Err if unable to write new entries
     /// will not return Err if unable to read files in dir
     pub fn init(config: Settings, ignore: IgnorePatterns) -> Result<Self, JrnError> {
-        //TODO
-        //list all files in the directory that are not ignored
-        //filter all that have valid jrn formatting
-        //populate self.entries with found entries
-        //populate self.tags with found tags
-        let repo = JrnRepo {
+        //TODO populate self.tags with found tags
+        let mut repo = JrnRepo {
             config,
             ignore,
             entries: Vec::new(),
             tags: HashMap::new(),
         };
+        let current_dir = std::env::current_dir().expect("jrn needs access to the current working directory");
+        repo.collect_entries(&current_dir);
         Ok(repo)
     }
 
@@ -103,7 +102,7 @@ impl JrnRepo {
 
     /// display entries to std::out
     /// that match a provided filter
-    pub fn list_entries(&self, filter: impl Fn(&JrnEntry) -> bool) -> Result<(), JrnError> {
+    fn list_entries(&self, filter: impl Fn(&JrnEntry) -> bool) -> Result<(), JrnError> {
         let stdout = std::io::stdout();
         let mut handle = stdout.lock();
         for entry in &self.entries {
@@ -114,36 +113,8 @@ impl JrnRepo {
         Ok(())
     }
 
-    /// tries to reads an entry from a path, propagating errors
-    fn read_entry(path: &Path) -> Result<JrnEntry, JrnError> {
-        let str = path.to_str().ok_or(JrnError::InvalidUnicode)?;
-        dbg!(str);
-
-        lazy_static!(
-            static ref RE: Regex = Regex::new(r"(?x) # allows insignificant whitespace and comments
-            (?P<year>\d{4})
-            -
-            (?P<month>\d{2})
-            -
-            (?P<day>\d{2})
-            _
-            (?P<hr>\d{2})
-            (?P<min>\d{2})
-            -? # optional tag start
-            (?P<tags>.*)
-            ").unwrap()
-        );
-
-        if let Some(captures) = RE.captures(str) {
-            let year: i32 = &captures.name("year").unwrap().parse().unwrap();
-            let month: u32 = &captures.name("month").unwrap().parse().unwrap();
-            let day: u32 = &captures.name("day").unwrap().parse().unwrap();
-        }
-
-        unimplemented!()
-    }
-
     /// formats the file name for a potential new entry
+    /// TODO move method to JrnEntry
     fn build_path(&self, tags: Vec<&str>) -> PathBuf {
         let file_name = self.format_file_name(tags);
         let path_buf = PathBuf::from(file_name);
@@ -177,14 +148,30 @@ impl JrnRepo {
         file_name
     }
 
-    fn visit_recursively(&self, dir: &Path, f: &impl Fn(&DirEntry)) {
-        if self.ignore.matches(dir) {
+    fn collect_entries(&mut self, path: &Path) {
+        if self.ignore.matches(path) {
             return
         }
-        
-        if dir.is_dir() {
-            for entry in fs::read_dir(dir) {
+
+        if path.is_dir() {
+            if let Some(dir) = fs::read_dir(path).ok() {
+                for f in dir {
+                    if let Some(file) = f.ok() {
+                        self.collect_entries(file.path().borrow());
+                    }
+                }
+            }
+        } else {
+            if let Some(entry) = JrnEntry::read_entry(path) {
+                self.entries.push(entry);
             }
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+
 }

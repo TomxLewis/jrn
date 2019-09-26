@@ -7,6 +7,7 @@ pub enum JrnError {
     Serialization(BoxedError),
     InvalidUnicode,
     InvalidRegex,
+    ParseIntError(BoxedError)
 }
 
 impl std::error::Error for JrnError {}
@@ -38,5 +39,11 @@ impl From<ron::de::Error> for JrnError {
 impl From<regex::Error> for JrnError {
     fn from(err: regex::Error) -> Self {
         JrnError::InvalidRegex
+    }
+}
+
+impl From<std::num::ParseIntError> for JrnError {
+    fn from(err: std::num::ParseIntError) -> Self {
+        JrnError::ParseIntError(Box::new(err))
     }
 }
