@@ -4,10 +4,7 @@ use std::io::Read;
 use regex::Regex;
 use lazy_static::lazy_static;
 
-use super::Settings;
-use crate::JrnError;
-use crate::jrn_lib::time::TimeStamp;
-use std::ffi::OsString;
+use super::{JrnError, Settings, TimeStamp};
 
 /// the in memory representation of a jrn entry
 #[derive(Debug)]

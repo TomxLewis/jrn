@@ -11,29 +11,30 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .setting(AppSettings::VersionlessSubcommands)
         .author("Tom Lewis <tomxlewis@gmail.com")
         .about("Command Line journaling System that Integrates with git for version control.")
+        //DONE
+        .subcommand(SubCommand::with_name("list")
+            .arg(Arg::from_usage("[FILTER] 'List entries where filename contains FILTER'")
+                .default_value(".*")
+                .takes_value(true)))
+        .subcommand(SubCommand::with_name("new")
+            .about("Create a new jrn entry")
+            //TODO remove optional arg make required, but default to no TAGS
+            .arg(Arg::from_usage("-t, --tags [TAGS] 'Tags in the new entry'")
+                .takes_value(true)
+                .multiple(true))
+            .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
+            .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'")
+                .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
+                .takes_value(true)))
+        //TODO
         .arg(Arg::from_usage("-c --config [OPTION]=[VALUE]\"\" 'Set a configuration parameter for this run only'")
             //TODO implement parsing config option=value pairs
             .long_help("See mod jrn::jrn_lib::config::settings for fields and values")
             //TODO document all config options
             .multiple(true)
             .number_of_values(2))
-        .subcommand(SubCommand::with_name("new")
-            .about("Create a new jrn entry")
-            .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
-            .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'")
-                .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
-                .takes_value(true))
-            .arg(Arg::from_usage("-t, --tags [TAGS] 'Tags in the new entry'")
-                .takes_value(true)
-                .multiple(true)))
         .subcommand(SubCommand::with_name("tags"))
             //TODO define sub-command "tags"
-        .subcommand(SubCommand::with_name("list")
-                .about("List entries")
-                .arg(Arg::from_usage("-m --match [MATCH] 'Specify jrn entries by partial timestamp or tag'")
-                    .long_help("If no entries are found containing the STRING, the program simply returns")
-                    .takes_value(true)))
-            //TODO implement sub-command "list"
         .subcommand(SubCommand::with_name("config")
             //TODO implement sub-command "config"
             .about("Alters or inquires the current jrn configuration")
@@ -44,33 +45,22 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
 }
 
 fn main() {
-    //init chosen logger
+    //choose logging impl
     SimpleLogger::init(LevelFilter::Warn, Config::default()).unwrap();
 
-    //init Settings and IgnorePatterns from env
     //TODO pass any config args to cfg object
     let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
     let ignore = IgnorePatterns::find_or_default();
-
-    //init repo
     let mut repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
 
     //process command line args
     let matches = clap_app().get_matches();
-
     match matches.subcommand() {
         ("new", Some(args)) => new(args, &mut repo),
         ("list", Some(args)) => list(args, &mut repo),
         _ => {
-            #[cfg(debug_assertions)]
-            dbg!(&matches);
-
-            //write out help message lazily if needed
-            //#[cfg(not(debug_assertions))]
-            {
-                clap_app().print_help().unwrap();
-                println!();
-            }
+            clap_app().print_help().unwrap();
+            println!();
         }
     }
 }
@@ -87,6 +77,8 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
 }
 
 fn list(args: &ArgMatches, repo: &mut JrnRepo) {
-    let pattern: &str = args.value_of("match").unwrap_or(r".*");
-    repo.list_entry_matches(pattern).unwrap()
+    //filter value is safe to unwrap as default is given to clap
+    let filter: &str = args.value_of("filter").unwrap();
+
+    repo.list_entries(filter).unwrap()
 }
