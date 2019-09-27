@@ -4,10 +4,11 @@ mod config;
 mod repo;
 mod entry;
 
-//re-exports
+//internals
 use time::TimeStamp;
+use entry::{JrnEntry, JrnEntryFilter};
 
-//i.e. the structs we want available in main.rs
+//exports
 pub use config::{IgnorePatterns, Settings};
 pub use error::JrnError;
 pub use repo::JrnRepo;

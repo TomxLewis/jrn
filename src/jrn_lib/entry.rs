@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use super::{JrnError, Settings, TimeStamp};
 
 /// the in memory representation of a jrn entry
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
 pub struct JrnEntry {
     creation_time: TimeStamp,
     tags: Vec<String>,

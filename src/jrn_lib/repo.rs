@@ -1,20 +1,18 @@
-use lazy_static::lazy_static;
-use regex::{Regex, Captures};
-use super::entry::JrnEntry;
-use super::{IgnorePatterns, Settings, TimeStamp, JrnError};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, VecDeque, BTreeSet, BTreeMap};
 use std::io::Write;
 use std::fs::{self, DirEntry, File, OpenOptions};
 use std::path::{PathBuf, Path};
-use crate::jrn_lib::entry::JrnEntryFilter;
-use std::borrow::Borrow;
+use lazy_static::lazy_static;
+use regex::{Regex, Captures};
+
+use super::{Settings, TimeStamp, IgnorePatterns, JrnEntry, JrnEntryFilter, JrnError};
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
     config: Settings,
     ignore: IgnorePatterns,
     /// entries sorted by creation time
-    entries: Vec<JrnEntry>,
+    entries: BTreeSet<JrnEntry>,
     /// unsorted collection of cached tags, mapped to the number of times they appear
     tags: HashMap<String, u16>,
 }
@@ -35,7 +33,7 @@ impl JrnRepo {
         let mut repo = JrnRepo {
             config,
             ignore,
-            entries: Vec::new(),
+            entries: BTreeSet::new(),
             tags: HashMap::new(),
         };
         let current_dir: PathBuf = std::env::current_dir().expect("jrn needs access to the current working directory");
@@ -163,13 +161,13 @@ impl JrnRepo {
             if let Some(dir) = fs::read_dir(path).ok() {
                 for f in dir {
                     if let Some(file) = f.ok() {
-                        self.collect_entries(file.path().borrow());
+                        self.collect_entries(&file.path());
                     }
                 }
             }
         } else {
             if let Some(entry) = JrnEntry::read_entry(path) {
-                self.entries.push(entry);
+                self.entries.insert(entry);
             }
         }
     }

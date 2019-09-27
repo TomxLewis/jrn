@@ -3,7 +3,7 @@ use std::path::Path;
 
 static TIMESTAMP_FMT: &'static str = "%Y-%m-%d_%H%M";
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct TimeStamp {
     inner: NaiveDateTime,
 }
