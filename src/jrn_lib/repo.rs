@@ -98,8 +98,9 @@ impl JrnRepo {
 
         let mut matched: VecDeque<&JrnEntry> = self.entries.iter().filter(|entry| filter(entry)).collect();
         if let Some(most_recent) = most_recent {
-            if most_recent < matched.len() {
-                for _ in 0..most_recent {
+            let len = matched.len();
+            if most_recent < len {
+                for _ in most_recent..len {
                     matched.pop_front();
                 }
             }
