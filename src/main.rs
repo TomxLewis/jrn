@@ -97,13 +97,25 @@ fn list(args: &ArgMatches, repo: &mut JrnRepo) {
 
 #[cfg(test)]
 mod test {
-    use assert_cmd::cargo_bin;
+    use assert_cmd::crate_name;
     use assert_cmd::prelude::*;
     use std::process::Command;
+    use std::fs::DirEntry;
+
+    fn bin() -> Command {
+        Command::cargo_bin(crate_name!()).unwrap()
+    }
 
     #[test]
     fn new_with_tags() {
-        let mut cmd = Command::cargo_bin(crate_name!()).unwrap();
-        cmd.spawn();
+        let mut cmd = bin();
+        cmd.args(&["new", "-q", "Test", "One"]);
+        let assert = cmd.assert();
+        assert.success();
+        let paths: Vec<DirEntry> = std::fs::read_dir(".").unwrap().map(|p| p.unwrap()).collect();
+        let file: Option<&DirEntry> = paths.iter().find(|p| p.file_name().to_str().unwrap().contains("Test_One"));
+        if let Some(file) = file {
+            std::fs::remove_file(file.path()).unwrap();
+        }
     }
 }
