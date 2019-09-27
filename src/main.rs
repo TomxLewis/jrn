@@ -77,8 +77,7 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
 }
 
 fn list(args: &ArgMatches, repo: &mut JrnRepo) {
-    //filter value is safe to unwrap as default is given to clap
-    let filter: &str = args.value_of("filter").unwrap();
+    let filter: &str = args.value_of("filter").unwrap_or(".*");
 
     repo.list_entries(filter).unwrap()
 }
