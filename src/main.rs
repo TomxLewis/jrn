@@ -81,7 +81,7 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     //text to put in new entry if any
     let text: Option<&str> = args.value_of("from");
     //tags passed as args to the program
-    let tags: Option<Vec<String>> = args.values_of_lossy("tags");
+    let tags: Option<Vec<String>> = args.values_of_lossy("TAGS");
     //should open editor?
     let open_editor: bool = !args.is_present("quick");
 
