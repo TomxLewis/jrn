@@ -4,6 +4,7 @@ use clap::{Arg, ArgMatches, App, AppSettings, SubCommand};
 use jrn::*;
 use simplelog::{SimpleLogger, Config};
 use log::LevelFilter;
+use std::str::FromStr;
 
 fn clap_app<'a, 'b>() -> App<'a, 'b> {
     App::new("jrn")
@@ -15,7 +16,8 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(SubCommand::with_name("list")
             .arg(Arg::from_usage("[FILTER] 'List entries where filename contains FILTER'")
                 .default_value(".*")
-                .takes_value(true)))
+                .takes_value(true))
+            .arg(Arg::from_usage("-n [NUM] 'Limit output to most recent NUM of matching entries")))
         .subcommand(SubCommand::with_name("new")
             .about("Create a new jrn entry")
             //TODO remove optional arg make required, but default to no TAGS
@@ -77,7 +79,8 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
 }
 
 fn list(args: &ArgMatches, repo: &mut JrnRepo) {
-    let filter: &str = args.value_of("filter").unwrap_or(".*");
+    let filter: &str = args.value_of("FILTER").unwrap();
+    let num: Option<usize> = args.value_of("n").map(|s| usize::from_str(s).unwrap());
 
-    repo.list_entries(filter).unwrap()
+    repo.list_entries(filter, num).unwrap()
 }

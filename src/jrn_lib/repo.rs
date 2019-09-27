@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use regex::{Regex, Captures};
 use super::entry::JrnEntry;
 use super::{IgnorePatterns, Settings, TimeStamp, JrnError};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::Write;
 use std::fs::{self, DirEntry, File, OpenOptions};
 use std::path::{PathBuf, Path};
@@ -95,15 +95,22 @@ impl JrnRepo {
 
     /// display entries to std::out
     /// that match the provided string
-    pub fn list_entries(&self, pattern: &str) -> Result<(), JrnError> {
+    pub fn list_entries(&self, pattern: &str, most_recent: Option<usize>) -> Result<(), JrnError> {
         let filter = JrnEntryFilter::from_pattern(pattern)?.into_filter();
+
+        let mut matched: VecDeque<&JrnEntry> = self.entries.iter().filter(|entry| filter(entry)).collect();
+        if let Some(most_recent) = most_recent {
+            if most_recent < matched.len() {
+                for _ in 0..most_recent {
+                    matched.pop_front();
+                }
+            }
+        }
+
         let stdout = std::io::stdout();
         let mut handle = stdout.lock();
-
-        for entry in &self.entries {
-            if filter(&entry) {
-                writeln!(handle, "{}", &entry)?;
-            }
+        for entry in matched {
+            writeln!(handle, "{}", &entry)?;
         }
         Ok(())
     }
@@ -130,14 +137,18 @@ impl JrnRepo {
         //gather all tags
         let mut tags = tags.clone();
         tags.append(&mut self.config.get_tags());
+        dbg!(&tags);
 
         if !tags.is_empty() {
             file_name.push_str(tag_start_char);
         }
 
-        for tag in tags {
-            file_name.push_str(tag_delim);
+        let tag_len = tags.len();
+        for (i, tag) in tags.iter().enumerate() {
             file_name.push_str(tag);
+            if i < (tag_len - 1) {
+                file_name.push_str(tag_delim);
+            }
         }
 
         file_name
