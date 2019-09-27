@@ -14,20 +14,32 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .about("Command Line journaling System that Integrates with git for version control.")
         //DONE
         .subcommand(SubCommand::with_name("list")
+            .about("List jrn entries")
             .arg(Arg::from_usage("[FILTER] 'List entries where filename contains FILTER'")
                 .default_value(".*")
                 .takes_value(true))
             .arg(Arg::from_usage("-n [NUM] 'Limit output to most recent NUM of matching entries")))
         .subcommand(SubCommand::with_name("new")
             .about("Create a new jrn entry")
-            //TODO remove optional arg make required, but default to no TAGS
-            .arg(Arg::from_usage("-t, --tags [TAGS] 'Tags in the new entry'")
+            .arg(Arg::from_usage("[TAGS] 'Tags in the new entry'")
+                .required(false)
                 .takes_value(true)
                 .multiple(true))
             .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
             .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'")
                 .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
                 .takes_value(true)))
+        .subcommand(SubCommand::with_name("entries")
+            //TODO implement entries subcommand
+            .arg(Arg::from_usage("[FILTER] 'Operations will apply to entries that match the FILTER'")
+                .long_help("Asks for confirmation on modifying multiple entries, \
+                this behavior can be skipped by passing the -f or --force option")))
+        //
+        .subcommand(SubCommand::with_name("tags")
+            //TODO implement tags subcommand
+            .arg(Arg::from_usage("[FILTER] 'Operations will apply to TAGS that match the filter'")
+                .long_help("Asks for confirmation on modifying multiple entries, \
+                this behavior can be skipped by passing the -f or --force option")))
         //TODO
         .arg(Arg::from_usage("-c --config [OPTION]=[VALUE]\"\" 'Set a configuration parameter for this run only'")
             //TODO implement parsing config option=value pairs
@@ -35,8 +47,6 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
             //TODO document all config options
             .multiple(true)
             .number_of_values(2))
-        .subcommand(SubCommand::with_name("tags"))
-            //TODO define sub-command "tags"
         .subcommand(SubCommand::with_name("config")
             //TODO implement sub-command "config"
             .about("Alters or inquires the current jrn configuration")
@@ -83,4 +93,17 @@ fn list(args: &ArgMatches, repo: &mut JrnRepo) {
     let num: Option<usize> = args.value_of("n").map(|s| usize::from_str(s).unwrap());
 
     repo.list_entries(filter, num).unwrap()
+}
+
+#[cfg(test)]
+mod test {
+    use assert_cmd::cargo_bin;
+    use assert_cmd::prelude::*;
+    use std::process::Command;
+
+    #[test]
+    fn new_with_tags() {
+        let mut cmd = Command::cargo_bin(crate_name!()).unwrap();
+        cmd.spawn();
+    }
 }
