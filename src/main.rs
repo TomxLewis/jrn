@@ -29,6 +29,8 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
             .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'")
                 .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
                 .takes_value(true)))
+        .subcommand(SubCommand::with_name("log")
+                    .about("Logs the most recent entries to stdout"))
         .subcommand(SubCommand::with_name("entries")
             //TODO implement entries subcommand
             .arg(Arg::from_usage("[FILTER] 'Operations will apply to entries that match the FILTER'")
@@ -70,6 +72,7 @@ fn main() {
     match matches.subcommand() {
         ("new", Some(args)) => new(args, &mut repo),
         ("list", Some(args)) => list(args, &mut repo),
+        ("log", _) => log(&repo),
         _ => {
             clap_app().print_help().unwrap();
             println!();
@@ -92,7 +95,19 @@ fn list(args: &ArgMatches, repo: &mut JrnRepo) {
     let filter: &str = args.value_of("FILTER").unwrap();
     let num: Option<usize> = args.value_of("n").map(|s| usize::from_str(s).unwrap());
 
-    repo.list_entries(filter, num).unwrap()
+    repo.list_entries(filter, num).unwrap();
+}
+
+enum LogTime {
+    Today,
+    PastHour,
+}
+/// Display the most recent entries to stdout
+/// shortcut for jrn list -n=5
+fn log(repo: &JrnRepo) { //TODO take a LogTime
+    let filter = ".*";
+    let num = Some(5);
+    repo.list_entries(filter, num).unwrap();
 }
 
 #[cfg(test)]
