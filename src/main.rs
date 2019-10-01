@@ -12,48 +12,49 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
         .setting(AppSettings::VersionlessSubcommands)
         .author("Tom Lewis <tomxlewis@gmail.com")
         .about("Command Line journaling System that Integrates with git for version control.")
-        .subcommand(SubCommand::with_name("list")
-                    .about("List jrn entries")
-                    .arg(Arg::from_usage("[FILTER] 'List entries where filename contains FILTER'")
-                        .default_value(".*")
-                        .takes_value(true))
-                    .arg(Arg::from_usage("-n [NUM] 'Limit output to most recent NUM of matching entries")))
-        .subcommand(SubCommand::with_name("new")
-                    .about("Create a new jrn entry")
-                    .arg(Arg::from_usage("[TAGS] 'Tags in the new entry'")
-                        .required(false)
-                        .takes_value(true)
-                        .multiple(true))
-                    .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
-                    .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'")
-                        .long_help("creates a new entry with TEXT and the default tags provided by the devices config")
-                        .takes_value(true)))
-        .subcommand(SubCommand::with_name("log")
-                    .about("Logs the most recent entries to stdout"))
+        .subcommand(SubCommand::with_name("list").about("List jrn entries")
+            .arg(Arg::from_usage("[FILTER] 'List entries where filename contains FILTER'").default_value(".*"))
+            .arg(Arg::from_usage("-n [NUM] 'Limit output to most recent NUM of matching entries"))
+            .subcommand(SubCommand::with_name("tags").about("Lists all tags"))
+            )
+        .subcommand(SubCommand::with_name("new").about("Create a new jrn entry")
+            .arg(Arg::from_usage("[TAGS] 'Tags in the new entry'")
+                .required(false)
+                .takes_value(true)
+                .multiple(true)
+                )
+            .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
+            .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'"))
+            )
+        .subcommand(SubCommand::with_name("log").about("Logs the most recent entries to stdout"))
         .subcommand(SubCommand::with_name("entries")
-                    //TODO implement entries subcommand
-                    .arg(Arg::from_usage("[FILTER] 'Operations will apply to entries that match the FILTER'")
-                        .long_help("Asks for confirmation on modifying multiple entries, \
-                        this behavior can be skipped by passing the -f or --force option")))
-        .subcommand(SubCommand::with_name("tags")
-                    //TODO implement tags subcommand
-                    .arg(Arg::from_usage("[FILTER] 'Operations will apply to TAGS that match the filter'")
-                        .long_help("Asks for confirmation on modifying multiple entries, \
-                        this behavior can be skipped by passing the -f or --force option")))
+            //TODO implement entries subcommand
+            .arg(Arg::from_usage("[FILTER] 'Operations will apply to entries that match the FILTER'")
+                .long_help("Asks for confirmation on modifying multiple entries, \
+                this behavior can be skipped by passing the -f or --force option")))
+        .subcommand(SubCommand::with_name("tags").about("Modify and remove tags in the working jrn repository")
+            //TODO implement tags subcommand
+            .arg(Arg::from_usage("[FILTER] 'Operations will apply to TAGS that match the filter'")
+                .long_help("Asks for confirmation on modifying multiple entries, \
+                this behavior can be skipped by passing the -f or --force option"))
+            .arg(Arg::from_usage("-d --delete 'Deletes selected tag from all entries'"))
+            .arg(Arg::from_usage("-r --rename [TEXT] 'Renames selected tag'"))
+            .subcommand(SubCommand::with_name("list").about("Lists all tags, and the number of times they appear"))
+            )
         //TODO
-        .arg(Arg::from_usage("-c --config [OPTION]=[VALUE]\"\" 'Set a configuration parameter for this run only'")
-                    //TODO implement parsing config option=value pairs
-                    .long_help("See mod jrn::jrn_lib::config::settings for fields and values")
-                    //TODO document all config options
-                    .multiple(true)
-                    .number_of_values(2))
+        .arg(Arg::from_usage("-c --config [OPTION]=[VALUE] 'Set a configuration parameter for this run only'")
+            //TODO implement parsing config option=value pairs
+            .long_help("See mod jrn::jrn_lib::config::settings for fields and values")
+            .multiple(true)
+            .number_of_values(2)
+            )
         .subcommand(SubCommand::with_name("config")
-                    //TODO implement sub-command "config"
-                    .about("Alters or inquires the current jrn configuration")
-                    .arg(Arg::with_name("list")
-                        .help("Lists all config options and their values")
-                        .short("l")
-                        .long("list")))
+            //TODO document all config options
+            .about("Alters or inquires the current jrn configuration")
+            .arg(Arg::with_name("list")
+                .help("Lists all config options and their values")
+                .short("l")
+                .long("list")))
 }
 
 fn main() {
@@ -69,8 +70,9 @@ fn main() {
     let matches = clap_app().get_matches();
     match matches.subcommand() {
         ("new", Some(args)) => new(args, &mut repo),
-        ("list", Some(args)) => list(args, &mut repo),
+        ("list", Some(args)) => list_entries(args, &mut repo),
         ("log", _) => log(&repo),
+        ("tags", Some(args)) => handle_tags_arg(args, &mut repo),
         _ => {
             clap_app().print_help().unwrap();
             println!();
@@ -89,7 +91,12 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     repo.create_entry(tags, text, open_editor).expect("Failed to write entry");
 }
 
-fn list(args: &ArgMatches, repo: &mut JrnRepo) {
+fn handle_tags_arg(args: &ArgMatches, repo: &mut JrnRepo) {
+    dbg!(args);
+    repo.list_tags();
+}
+
+fn list_entries(args: &ArgMatches, repo: &mut JrnRepo) {
     let filter: &str = args.value_of("FILTER").unwrap();
     let num: Option<usize> = args.value_of("n").map(|s| usize::from_str(s).unwrap());
 

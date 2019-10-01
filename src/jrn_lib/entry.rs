@@ -9,9 +9,9 @@ use super::{JrnError, Settings, TimeStamp};
 /// the in memory representation of a jrn entry
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
 pub struct JrnEntry {
-    creation_time: TimeStamp,
-    tags: Vec<String>,
-    file_name: String,
+    pub creation_time: TimeStamp,
+    pub tags: Vec<String>,
+    pub file_name: String,
 }
 
 impl JrnEntry {

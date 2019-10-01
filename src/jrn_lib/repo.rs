@@ -1,11 +1,11 @@
-use std::collections::{HashMap, VecDeque, BTreeSet, BTreeMap};
+use std::collections::{HashMap, VecDeque, BTreeSet};
 use std::io::Write;
 use std::fs::{self, DirEntry, File, OpenOptions};
 use std::path::{PathBuf, Path};
 use lazy_static::lazy_static;
 use regex::{Regex, Captures};
 
-use super::{Settings, TimeStamp, IgnorePatterns, JrnEntry, JrnEntryFilter, JrnError};
+use super::*;
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
@@ -13,8 +13,7 @@ pub struct JrnRepo {
     ignore: IgnorePatterns,
     /// entries sorted by creation time
     entries: BTreeSet<JrnEntry>,
-    /// unsorted collection of cached tags, mapped to the number of times they appear
-    tags: HashMap<String, u16>,
+    tags: TagContainer,
 }
 
 impl JrnRepo {
@@ -29,12 +28,11 @@ impl JrnRepo {
     /// returning Err if unable to write new entries
     /// will not return Err if unable to read files in dir
     pub fn init(config: Settings, ignore: IgnorePatterns) -> Result<Self, JrnError> {
-        //TODO populate self.tags with found tags
         let mut repo = JrnRepo {
             config,
             ignore,
             entries: BTreeSet::new(),
-            tags: HashMap::new(),
+            tags: TagContainer::new(),
         };
         let current_dir: PathBuf = std::env::current_dir().expect("jrn needs access to the current working directory");
         repo.collect_entries(&current_dir);
@@ -75,13 +73,6 @@ impl JrnRepo {
         Ok(())
     }
 
-    /// opens an entry in the cfg specified editor
-    ///
-    /// returning Err if the editor fails to start
-    pub fn open_entry(&self, entry: Option<&JrnEntry>) -> Result<(), JrnError> {
-        unimplemented!()
-    }
-
     pub fn modify_tags(&mut self, entry: &mut JrnEntry, tags: Option<Vec<String>>) -> Result<(), JrnError> {
         //determine added tags
         //determine removed tags
@@ -114,6 +105,12 @@ impl JrnRepo {
         Ok(())
     }
 
+    pub fn list_tags(&self) {
+        let tags = self.tags.sorted();
+        for tag in tags {
+            println!("{}: {}", tag.1, tag.0);
+        }
+    }
     /// formats the file name for a potential new entry
     /// TODO move method to JrnEntry
     fn build_path(&self, tags: Vec<&str>) -> PathBuf {
@@ -168,6 +165,9 @@ impl JrnRepo {
             }
         } else {
             if let Some(entry) = JrnEntry::read_entry(path) {
+                for tag in &entry.tags {
+                    self.tags.insert(tag);
+                }
                 self.entries.insert(entry);
             }
         }
