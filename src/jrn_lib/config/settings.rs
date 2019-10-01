@@ -1,14 +1,12 @@
-use super::*;
-
 use ron::de::from_bytes;
-use ron::ser::PrettyConfig;
-use ron::ser::Serializer;
 use serde::{Serialize, Deserialize};
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::collections::BTreeMap;
+
+use super::*;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -84,7 +82,7 @@ impl Settings {
         //add any necessary but not found settings from the default
         working_cfg = working_cfg.merge(Settings::default());
 
-        Ok(Settings::from(working_cfg))
+        Ok(working_cfg)
     }
 
     pub fn get_tag_deliminator(&self) -> &str {
@@ -162,9 +160,7 @@ impl Settings {
                 }
                 //else if the setting already exists in self don't overwrite
                 _ => {
-                    if !self.map.contains_key(&setting) {
-                        self.map.insert(setting, value);
-                    }
+                    self.map.entry(setting).or_insert(value);
                 }
             }
         }
@@ -196,12 +192,14 @@ impl Settings {
     /// currently only used for testing
     #[cfg(test)]
     fn write(&self, path: &Path) -> Result<(), JrnError> {
-        let mut serializer = Serializer::new(Some(PrettyConfig::default()), true);
-        let mut file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
+        use std::io::Write;
+
+        let mut serializer = ron::ser::Serializer::new(Some(ron::ser::PrettyConfig::default()), true);
+        let mut file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
         self.serialize(&mut serializer)?;
 
         let serialization_result = serializer.into_output_string();
-        file.write_all(&mut serialization_result.as_bytes()).unwrap();
+        file.write_all(&serialization_result.as_bytes()).unwrap();
         Ok(())
     }
 
@@ -215,7 +213,8 @@ mod test {
     fn write_default() {
         let settings = Settings::default();
         let path = PathBuf::from("test.jrnconfig");
-        settings.write(&path);
+        settings.write(&path).unwrap();
+        std::fs::remove_file(&path).unwrap();
     }
 }
 

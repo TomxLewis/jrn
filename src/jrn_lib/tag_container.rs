@@ -1,9 +1,7 @@
 use std::collections::{BinaryHeap, HashMap};
 use std::cmp::Ordering;
 
-use super::*;
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TagContainer {
     inner: HashMap<String, u16>,
 }
@@ -27,9 +25,7 @@ impl PartialOrd for CountAndTag {
 
 impl TagContainer {
     pub fn new() -> Self {
-        TagContainer {
-            inner: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn insert(&mut self, tag: &str) {

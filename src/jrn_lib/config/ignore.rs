@@ -6,8 +6,6 @@ use std::path::Path;
 use log::warn;
 use regex::Regex;
 
-use crate::JrnError;
-
 #[derive(Debug)]
 pub struct IgnorePatterns {
     filters: HashSet<String>,
@@ -80,8 +78,8 @@ impl IgnorePatterns {
         if path.exists() {
             if let Ok(mut file) = File::open(&path) {
                 let mut buf: String = String::new();
-                if let Ok(_) = file.read_to_string(&mut buf) {
-                    result.filters = buf.lines().map(|s| String::from(s)).collect();
+                if file.read_to_string(&mut buf).is_ok() {
+                    result.filters = buf.lines().map(String::from).collect();
                     result.initialized = !result.filters.is_empty();
                 }
                 else {
@@ -128,12 +126,7 @@ impl IgnorePatterns {
 
 #[cfg(test)]
 mod test {
-    use std::path::PathBuf;
-
     use super::*;
-
-    //TODO move default to a lazy static ref
-
 
     #[test]
     fn default_ignores_git() {

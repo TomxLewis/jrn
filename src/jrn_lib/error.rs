@@ -37,7 +37,7 @@ impl From<ron::de::Error> for JrnError {
 }
 
 impl From<regex::Error> for JrnError {
-    fn from(err: regex::Error) -> Self {
+    fn from(_err: regex::Error) -> Self {
         JrnError::InvalidRegex
     }
 }

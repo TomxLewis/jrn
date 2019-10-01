@@ -1,10 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 use regex::Regex;
 use lazy_static::lazy_static;
 
-use super::{JrnError, Settings, TimeStamp};
+use super::{JrnError, TimeStamp};
 
 /// the in memory representation of a jrn entry
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
@@ -43,7 +43,7 @@ impl JrnEntry {
                 let tag_str: &str = captures.name("tags").unwrap().as_str();
 
                 let creation_time = TimeStamp::from_ymdhm(year, month, day, hr, min);
-                let tags: Vec<String> = tag_str.split('_').map(|s| String::from(s)).collect();
+                let tags: Vec<String> = tag_str.split('_').map(String::from).collect();
                 let file_name: String = String::from(path.file_name().unwrap().to_str().unwrap());
                 let entry = JrnEntry {
                     creation_time,
@@ -62,10 +62,10 @@ impl std::fmt::Display for JrnEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         //write the filepath
         writeln!(f, "{}", self.file_name)?;
-        for i in 0..self.file_name.chars().count() {
+        for _ in 0..self.file_name.chars().count() {
             write!(f, "-")?;
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         //write the contents of the file
         let mut file = File::open(Path::new(&self.file_name)).expect("File Not Found");

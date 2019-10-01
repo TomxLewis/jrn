@@ -7,6 +7,7 @@ extern crate log;
 extern crate simplelog;
 
 //test
+#[cfg(test)]
 extern crate assert_cmd;
 
 mod jrn_lib;
