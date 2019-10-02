@@ -6,6 +6,29 @@ use simplelog::{SimpleLogger, Config};
 use log::LevelFilter;
 use std::str::FromStr;
 
+fn main() {
+    //choose logging impl
+    SimpleLogger::init(LevelFilter::Warn, Config::default()).unwrap();
+
+    //TODO pass any config args to cfg object
+    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
+    let ignore = IgnorePatterns::find_or_default();
+    let mut repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
+
+    //process command line args
+    let matches = clap_app().get_matches();
+    match matches.subcommand() {
+        ("new", Some(args)) => handle_new(args, &mut repo),
+        ("list", Some(args)) => list_entries(args, &mut repo),
+        ("log", _) => log(&repo),
+        ("tags", Some(args)) => handle_tags(args, &mut repo),
+        _ => {
+            clap_app().print_help().unwrap();
+            println!();
+        }
+    }
+}
+
 fn clap_app<'a, 'b>() -> App<'a, 'b> {
     App::new("jrn")
         .version("0.1.0")
@@ -57,30 +80,8 @@ fn clap_app<'a, 'b>() -> App<'a, 'b> {
                 .long("list")))
 }
 
-fn main() {
-    //choose logging impl
-    SimpleLogger::init(LevelFilter::Warn, Config::default()).unwrap();
 
-    //TODO pass any config args to cfg object
-    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
-    let ignore = IgnorePatterns::find_or_default();
-    let mut repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
-
-    //process command line args
-    let matches = clap_app().get_matches();
-    match matches.subcommand() {
-        ("new", Some(args)) => new(args, &mut repo),
-        ("list", Some(args)) => list_entries(args, &mut repo),
-        ("log", _) => log(&repo),
-        ("tags", Some(args)) => handle_tags_arg(args, &mut repo),
-        _ => {
-            clap_app().print_help().unwrap();
-            println!();
-        }
-    }
-}
-
-fn new(args: &ArgMatches, repo: &mut JrnRepo) {
+fn handle_new(args: &ArgMatches, repo: &mut JrnRepo) {
     //text to put in new entry if any
     let text: Option<&str> = args.value_of("from");
     //tags passed as args to the program
@@ -91,15 +92,15 @@ fn new(args: &ArgMatches, repo: &mut JrnRepo) {
     repo.create_entry(tags, text, open_editor).expect("Failed to write entry");
 }
 
-fn handle_tags_arg(args: &ArgMatches, repo: &mut JrnRepo) {
+fn handle_tags(args: &ArgMatches, repo: &mut JrnRepo) {
     dbg!(args);
+    //TODO handle push tag
     repo.list_tags();
 }
 
 fn list_entries(args: &ArgMatches, repo: &mut JrnRepo) {
     let filter: &str = args.value_of("FILTER").unwrap();
     let num: Option<usize> = args.value_of("n").map(|s| usize::from_str(s).unwrap());
-
     repo.list_entries(filter, num).unwrap();
 }
 
@@ -109,6 +110,30 @@ fn log(repo: &JrnRepo) {
     let filter = ".*";
     let num = Some(5);
     repo.list_entries(filter, num).unwrap();
+}
+
+/// Pushes TAG to last NUM of entries
+fn tag_push(tag: &str, num: usize, repo: &mut JrnRepo) {
+    repo.push_tag(tag, num);
+}
+
+
+struct NewCommand {
+    // FLAGS
+    // -----
+    // -q --quick
+    skip_opening_editor: bool,
+
+    // Positional Arguments
+    // --------------------
+    // [TAGS] 'Tags in the new entry, defaults to the just the tags in the system and local configs'
+    tags: Vec<String>,
+
+    // Optional Arguments
+    // ------------------
+    // -l --location [LOCATION] 'Location the new entry was created, defaults to '
+    location: String,
+
 }
 
 #[cfg(test)]

@@ -56,6 +56,15 @@ impl JrnEntry {
 
         None
     }
+
+    /// Pushes a tag to this entry if possible
+    pub fn push_tag(&mut self, tag: &str) -> std::io::Result<()> {
+        self.tags.push(String::from(tag));
+        
+        //TODO place the tag in the entries contents or/and filename
+        
+        Ok(())
+    }
 }
 
 impl std::fmt::Display for JrnEntry {
