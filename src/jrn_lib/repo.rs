@@ -42,7 +42,7 @@ impl JrnRepo {
     /// opens the entry in the [Config] editor if requested
     ///
     /// returning Err if failing to create the entry
-    pub fn create_entry(&mut self, tags: Option<Vec<String>>, text: Option<&str>, open_editor: bool) -> Result<(), JrnError> {
+    pub fn create_entry(&mut self, tags: Option<Vec<String>>, text: Option<String>, open_editor: bool) -> Result<(), JrnError> {
         let tags = tags.unwrap_or_default();
         let tags_ref: Vec<&str> = tags.iter().map(|f| f.as_str()).collect();
         let path = self.build_path(tags_ref);

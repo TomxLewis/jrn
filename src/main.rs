@@ -1,149 +1,94 @@
 extern crate clap;
 extern crate structopt;
-use clap::{Arg, ArgMatches, App, AppSettings, SubCommand};
+use clap::AppSettings;
 use structopt::StructOpt;
 
 use jrn::*;
-use simplelog::{SimpleLogger, Config};
-use log::LevelFilter;
-use std::str::FromStr;
 
 fn main() {
-    //choose logging impl
-    SimpleLogger::init(LevelFilter::Warn, Config::default()).unwrap();
-
-    //TODO pass any config args to cfg object
     let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
     let ignore = IgnorePatterns::find_or_default();
     let mut repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
 
-    //process command line args
-    let matches = clap_app().get_matches();
-    match matches.subcommand() {
-        ("new", Some(args)) => handle_new(args, &mut repo),
-        ("list", Some(args)) => list_entries(args, &mut repo),
-        ("log", _) => log(&repo),
-        ("tags", Some(args)) => handle_tags(args, &mut repo),
-        _ => {
-            clap_app().print_help().unwrap();
-            println!();
+    let jrn = Jrn::from_args();
+
+    match jrn {
+        Jrn::New {skip_opening_editor, location, tags, } => { 
+            repo.create_entry(tags, location, skip_opening_editor).expect("Failure creating entry");
+        },
+        Jrn::List { pattern, n, } => {
+            repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
         }
+        _ => { println!("No subcommand given") },
     }
 }
 
-fn clap_app<'a, 'b>() -> App<'a, 'b> {
-    App::new("jrn")
-        .version("0.1.0")
-        .setting(AppSettings::VersionlessSubcommands)
-        .author("Tom Lewis <tomxlewis@gmail.com")
-        .about("Command Line journaling System that Integrates with git for version control.")
-        .subcommand(SubCommand::with_name("list").about("List jrn entries")
-            .arg(Arg::from_usage("[FILTER] 'List entries where filename contains FILTER'").default_value(".*"))
-            .arg(Arg::from_usage("-n [NUM] 'Limit output to most recent NUM of matching entries"))
-            .subcommand(SubCommand::with_name("tags").about("Lists all tags"))
-            )
-        .subcommand(SubCommand::with_name("new").about("Create a new jrn entry")
-            .arg(Arg::from_usage("[TAGS] 'Tags in the new entry'")
-                .required(false)
-                .takes_value(true)
-                .multiple(true)
-                )
-            .arg(Arg::from_usage("-q --quick 'Don't open editor, just create entry'"))
-            .arg(Arg::from_usage("-n --note [TEXT] 'The new entries contents'"))
-            )
-        .subcommand(SubCommand::with_name("log").about("Logs the most recent entries to stdout"))
-        .subcommand(SubCommand::with_name("entries")
-            //TODO implement entries subcommand
-            .arg(Arg::from_usage("[FILTER] 'Operations will apply to entries that match the FILTER'")
-                .long_help("Asks for confirmation on modifying multiple entries, \
-                this behavior can be skipped by passing the -f or --force option")))
-        .subcommand(SubCommand::with_name("tags").about("Modify and remove tags in the working jrn repository")
-            //TODO implement tags subcommand
-            .arg(Arg::from_usage("[FILTER] 'Operations will apply to TAGS that match the filter'")
-                .long_help("Asks for confirmation on modifying multiple entries, \
-                this behavior can be skipped by passing the -f or --force option"))
-            .arg(Arg::from_usage("-d --delete 'Deletes selected tag from all entries'"))
-            .arg(Arg::from_usage("-r --rename [TEXT] 'Renames selected tag'"))
-            .subcommand(SubCommand::with_name("list").about("Lists all tags, and the number of times they appear"))
-            )
-        //TODO
-        .arg(Arg::from_usage("-c --config [OPTION]=[VALUE] 'Set a configuration parameter for this run only'")
-            //TODO implement parsing config option=value pairs
-            .long_help("See mod jrn::jrn_lib::config::settings for fields and values")
-            .multiple(true)
-            .number_of_values(2)
-            )
-        .subcommand(SubCommand::with_name("config")
-            //TODO document all config options
-            .about("Alters or inquires the current jrn configuration")
-            .arg(Arg::with_name("list")
-                .help("Lists all config options and their values")
-                .short("l")
-                .long("list")))
-}
-
-
-fn handle_new(args: &ArgMatches, repo: &mut JrnRepo) {
-    //text to put in new entry if any
-    let text: Option<&str> = args.value_of("from");
-    //tags passed as args to the program
-    let tags: Option<Vec<String>> = args.values_of_lossy("TAGS");
-    //should open editor?
-    let open_editor: bool = !args.is_present("quick");
-
-    repo.create_entry(tags, text, open_editor).expect("Failed to write entry");
-}
-
-fn handle_tags(args: &ArgMatches, repo: &mut JrnRepo) {
-    dbg!(args);
-    //TODO handle push tag
-    repo.list_tags();
-}
-
-fn list_entries(args: &ArgMatches, repo: &mut JrnRepo) {
-    let filter: &str = args.value_of("FILTER").unwrap();
-    let num: Option<usize> = args.value_of("n").map(|s| usize::from_str(s).unwrap());
-    repo.list_entries(filter, num).unwrap();
-}
-
-/// Display the most recent entries to stdout
-/// shortcut for jrn list -n=5
-fn log(repo: &JrnRepo) {
-    let filter = ".*";
-    let num = Some(5);
-    repo.list_entries(filter, num).unwrap();
-}
-
-/// Pushes TAG to last NUM of entries
-fn tag_push(tag: &str, num: usize, repo: &mut JrnRepo) {
-    repo.push_tag(tag, Some(num));
-}
-
-#[derive(StructOpt)]
-#[structopt(about = "the stupid journaling system")]
+#[derive(Debug, StructOpt)]
+#[structopt(
+    setting(AppSettings::VersionlessSubcommands),
+)]
+/// the stupid journaling system
+/// 
+/// command line journaling that integrates with git for version control
 enum Jrn {
+    /// Craft a new entry
+    /// 
+    /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry. 
+    /// However if an entry already exists at the current time it will be opened for editing.
     New {
-        // FLAGS
-        // -----
-        // -q --quick, quiet
+        #[structopt(short = "q", long = "quick")]
+        /// Don't open the editor, just create the entry
         skip_opening_editor: bool,
 
-        // Positional Arguments
-        // --------------------
-        // [TAGS] 'Tags in the new entry, defaults to the just the tags in the system and local configs'
-        tags: Vec<String>,
+        #[structopt(
+            short,
+            long,
+            env = "JRN_LOCATION",
+        )]
+        /// Location the new entry was created
+        location: Option<String>,
 
-        // Optional Arguments
-        // ------------------
-        // -l --location [LOCATION] 'Location the new entry was created, defaults to '
-        locations: String,
+        #[structopt(short, long)]
+        /// Any tags to associate with the new entry
+        tags: Option<Vec<String>>,
     },
-    Log {
+    /// List entries
+    List {
+        #[structopt(default_value = ".*")]
+        /// Only list entries whose filename contains the given pattern
+        pattern: String,
 
+        #[structopt(short)]
+        /// Limit output to most recent n matched entries
+        n: Option<usize>,
     },
+    /// Modifies tags in the working jrn repository
     Tags {
+        #[structopt()]
+        /// Filter to match tags against
+        /// 
+        /// All operations will only apply to tags that match the filter
+        /// Confirmation will be asked for before modifying multiple entries
+        pattern: String,
 
+        #[structopt(short)]
+        /// Display all tags and the number of times they appear
+        list: bool,
+
+        #[structopt(short, long)]
+        /// Delete selected tags from all entries
+        delete: bool,
+
+        #[structopt(long)]
+        /// Rename the selected tag to new_name
+        new_name: Option<String>,
     },
+    /// Alters or inquires the working jrn configuration
+    Config {
+        #[structopt(short, long)]
+        /// Lists the mapping of all configuration options to their values
+        list: bool,
+    }
 }
 
 #[cfg(test)]
