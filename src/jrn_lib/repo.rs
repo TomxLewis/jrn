@@ -96,12 +96,13 @@ impl JrnRepo {
     pub fn push_tag(&mut self, tag: &str, num: Option<usize>) {
         //push only to the last entry if not specified
         let num = num.unwrap_or(1);
-        let mut entry_iter = self.entries.iter_mut().rev();
+        //TODO
+        //let mut entry_iter = self.entries.iter_mut().rev();
 
         for _ in 0..num {
-            if let Some(mut entry) = entry_iter.next() {
-                entry.push_tag(&tag);
-            }
+            //if let Some(mut entry) = entry_iter.next() {
+                //entry.push_tag(&tag);
+            //}
         }
     }
 

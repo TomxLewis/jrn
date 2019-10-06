@@ -1,5 +1,7 @@
 extern crate clap;
+extern crate structopt;
 use clap::{Arg, ArgMatches, App, AppSettings, SubCommand};
+use structopt::StructOpt;
 
 use jrn::*;
 use simplelog::{SimpleLogger, Config};
@@ -114,26 +116,34 @@ fn log(repo: &JrnRepo) {
 
 /// Pushes TAG to last NUM of entries
 fn tag_push(tag: &str, num: usize, repo: &mut JrnRepo) {
-    repo.push_tag(tag, num);
+    repo.push_tag(tag, Some(num));
 }
 
+#[derive(StructOpt)]
+#[structopt(about = "the stupid journaling system")]
+enum Jrn {
+    New {
+        // FLAGS
+        // -----
+        // -q --quick, quiet
+        skip_opening_editor: bool,
 
-struct NewCommand {
-    // FLAGS
-    // -----
-    // -q --quick
-    skip_opening_editor: bool,
+        // Positional Arguments
+        // --------------------
+        // [TAGS] 'Tags in the new entry, defaults to the just the tags in the system and local configs'
+        tags: Vec<String>,
 
-    // Positional Arguments
-    // --------------------
-    // [TAGS] 'Tags in the new entry, defaults to the just the tags in the system and local configs'
-    tags: Vec<String>,
+        // Optional Arguments
+        // ------------------
+        // -l --location [LOCATION] 'Location the new entry was created, defaults to '
+        locations: String,
+    },
+    Log {
 
-    // Optional Arguments
-    // ------------------
-    // -l --location [LOCATION] 'Location the new entry was created, defaults to '
-    location: String,
+    },
+    Tags {
 
+    },
 }
 
 #[cfg(test)]
