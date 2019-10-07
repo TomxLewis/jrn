@@ -26,15 +26,19 @@ fn main() {
 #[derive(Debug, StructOpt)]
 #[structopt(
     setting(AppSettings::VersionlessSubcommands),
+    setting(AppSettings::DisableHelpFlags),
+    setting(AppSettings::DisableVersion),
 )]
 /// the stupid journaling system
 /// 
 /// command line journaling that integrates with git for version control
 enum Jrn {
+    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// Craft a new entry
     /// 
-    /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry. 
-    /// However if an entry already exists at the current time it will be opened for editing.
+    /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry.
+    /// 
+    /// However if an entry already exists it will be opened for editing.
     New {
         #[structopt(short = "q", long = "quick")]
         /// Don't open the editor, just create the entry
@@ -52,6 +56,8 @@ enum Jrn {
         /// Any tags to associate with the new entry
         tags: Option<Vec<String>>,
     },
+
+    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// List entries
     List {
         #[structopt(default_value = ".*")]
@@ -62,9 +68,10 @@ enum Jrn {
         /// Limit output to most recent n matched entries
         n: Option<usize>,
     },
+
+    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// Modifies tags in the working jrn repository
     Tags {
-        #[structopt()]
         /// Filter to match tags against
         /// 
         /// All operations will only apply to tags that match the filter
@@ -83,6 +90,8 @@ enum Jrn {
         /// Rename the selected tag to new_name
         new_name: Option<String>,
     },
+
+    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// Alters or inquires the working jrn configuration
     Config {
         #[structopt(short, long)]
