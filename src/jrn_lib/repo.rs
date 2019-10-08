@@ -38,25 +38,23 @@ impl JrnRepo {
     }
 
     /// Tries to create a new entry in this repo
-    /// according to the formatting rules in the [Config],
-    /// opens the entry in the [Config] editor if requested
     ///
     /// returning Err if failing to create the entry
-    pub fn create_entry(&mut self, tags: Option<Vec<String>>, text: Option<String>, open_editor: bool) -> Result<(), JrnError> {
+    pub fn create_entry(&mut self, tags: Option<Vec<String>>, content: Option<String>, skip_edit: bool) -> Result<(), JrnError> {
         let tags = tags.unwrap_or_default();
         let tags_ref: Vec<&str> = tags.iter().map(|f| f.as_str()).collect();
         let path = self.build_path(tags_ref);
-        let file: Option<File> = if text.is_some() || !open_editor { OpenOptions::new().write(true).create(true).open(&path).ok() } else { None };
+        let file: Option<File> = if content.is_some() || skip_edit { OpenOptions::new().write(true).create(true).open(&path).ok() } else { None };
 
-        if let Some(text) = text {
-            file.unwrap().write_all(text.as_bytes())?;
+        if let Some(content) = content {
+            file.unwrap().write_all(content.as_bytes())?;
         }
-        else if !open_editor {
+        else if skip_edit {
             //create the file if not launching editor
             file.unwrap().write_all(&[])?;
         }
 
-        if open_editor {
+        if !skip_edit {
             self.config.launch_editor(Some(&path))?;
         }
 
