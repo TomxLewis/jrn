@@ -10,7 +10,13 @@ fn main() {
     let ignore = IgnorePatterns::find_or_default();
     let mut repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
 
-    let jrn = Jrn::from_args();
+    // app builder in which to change any configuration settings
+    // not possible to change through structopt
+    fn app<'a, 'b>()-> clap::App<'a, 'b> {
+        Jrn::clap()
+            .global_setting(AppSettings::DisableHelpFlags)
+    }
+    let jrn = Jrn::from_clap(&app().get_matches());
 
     match jrn {
         Jrn::New {skip_opening_editor, location, tags, } => { 
@@ -19,21 +25,20 @@ fn main() {
         Jrn::List { pattern, n, } => {
             repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
         }
-        _ => { println!("No subcommand given") },
+        _ => { unreachable!() },
     }
 }
 
 #[derive(Debug, StructOpt)]
 #[structopt(
     setting(AppSettings::VersionlessSubcommands),
-    setting(AppSettings::DisableHelpFlags),
     setting(AppSettings::DisableVersion),
+    setting(AppSettings::SubcommandRequiredElseHelp),
 )]
 /// the stupid journaling system
 /// 
 /// command line journaling that integrates with git for version control
 enum Jrn {
-    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// Craft a new entry
     /// 
     /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry.
@@ -61,7 +66,6 @@ enum Jrn {
         tags: Option<Vec<String>>,
     },
 
-    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// List entries
     List {
         #[structopt(default_value = ".*")]
@@ -73,7 +77,6 @@ enum Jrn {
         n: Option<usize>,
     },
 
-    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// Modifies tags in the working jrn repository
     Tags {
         /// Filter to match tags against
@@ -95,7 +98,6 @@ enum Jrn {
         new_name: Option<String>,
     },
 
-    #[structopt(setting(AppSettings::DisableHelpFlags))]
     /// Alters or inquires the working configuration
     ///
     /// The configuration is pulled from all available git configurations
@@ -113,25 +115,10 @@ enum Jrn {
 
 #[cfg(test)]
 mod test {
-    use assert_cmd::crate_name;
-    use assert_cmd::prelude::*;
-    use std::process::Command;
-    use std::fs::DirEntry;
-
-    fn bin() -> Command {
-        Command::cargo_bin(crate_name!()).unwrap()
-    }
 
     #[test]
-    fn new_with_tags() {
-        let mut cmd = bin();
-        cmd.args(&["new", "-q", "Test", "One"]);
-        let assert = cmd.assert();
-        assert.success();
-        let paths: Vec<DirEntry> = std::fs::read_dir(".").unwrap().map(|p| p.unwrap()).collect();
-        let file: Option<&DirEntry> = paths.iter().find(|p| p.file_name().to_str().unwrap().contains("Test_One"));
-        if let Some(file) = file {
-            std::fs::remove_file(file.path()).unwrap();
-        }
+    fn new() {
     }
+
+
 }
