@@ -8,25 +8,8 @@ use jrn::*;
 fn main() {
     let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
     let ignore = IgnorePatterns::find_or_default();
-    let mut repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
-
-    // app builder in which to change any configuration settings
-    // not possible to change through structopt
-    fn app<'a, 'b>()-> clap::App<'a, 'b> {
-        Jrn::clap()
-            .global_setting(AppSettings::DisableHelpFlags)
-    }
-    let jrn = Jrn::from_clap(&app().get_matches());
-
-    match jrn {
-        Jrn::New {skip_opening_editor, location, tags, } => { 
-            repo.create_entry(tags, location, skip_opening_editor).expect("Failure creating entry");
-        },
-        Jrn::List { pattern, n, } => {
-            repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
-        }
-        _ => { unreachable!() },
-    }
+    let repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
+    Jrn::build_app().match_on_subcommand(repo);
 }
 
 #[derive(Debug, StructOpt)]
@@ -110,6 +93,32 @@ enum Jrn {
         ///
         /// Relevant git config options will be displayed separate from application config options
         list: bool,
+    }
+}
+
+impl Jrn {
+    /// app builder in which to change any configuration settings
+    /// not possible to change through structopt
+    fn build_app() -> Self {
+        let clap_app = Jrn::clap().global_setting(AppSettings::DisableHelpFlags);
+        Jrn::from_clap(&clap_app.get_matches())
+    }
+
+    fn match_on_subcommand(self, mut repo: JrnRepo) {
+        match self {
+            Self::New {skip_opening_editor, location, tags, } => {
+                repo.create_entry(tags, location, skip_opening_editor).expect("Failure creating entry");
+            },
+            Self::List { pattern, n, } => {
+                repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
+            },
+            Self::Tags { pattern: _, list: _, delete: _, new_name: _ } => {
+                //TODO
+            },
+            Self::Config { list: _} => {
+                //TODO
+            },
+        }
     }
 }
 
