@@ -92,10 +92,17 @@ enum Jrn {
     },
 
     #[structopt(setting(AppSettings::DisableHelpFlags))]
-    /// Alters or inquires the working jrn configuration
+    /// Alters or inquires the working configuration
+    ///
+    /// The configuration is pulled from all available git configurations
+    /// and any system or local .jrnconfig files
+    ///
+    /// TODO implement
     Config {
         #[structopt(short, long)]
-        /// Lists the mapping of all configuration options to their values
+        /// Lists the mapping of all relevant configuration options to their values
+        ///
+        /// Relevant git config options will be displayed separate from application config options
         list: bool,
     }
 }
