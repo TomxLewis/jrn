@@ -50,6 +50,10 @@ enum Jrn {
             env = "JRN_LOCATION",
         )]
         /// Location the new entry was created
+        ///
+        /// The location can be pulled from the command line, the environment or the configuration
+        /// A locally given location e.g. from the command line will override the environment
+        /// or configuration set locations.
         location: Option<String>,
 
         #[structopt(short, long)]
