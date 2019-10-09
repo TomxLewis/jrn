@@ -61,6 +61,8 @@ enum Jrn {
     },
 
     /// Modifies tags in the working jrn repository
+    ///
+    /// TODO specify tags subcommand
     Tags {
         /// Filter to match tags against
         /// 
@@ -86,7 +88,7 @@ enum Jrn {
     /// The configuration is pulled from all available git configurations
     /// and any system or local .jrnconfig files
     ///
-    /// TODO implement
+    /// TODO specify config subcommand
     Config {
         #[structopt(short, long)]
         /// Lists the mapping of all relevant configuration options to their values
@@ -112,11 +114,11 @@ impl Jrn {
             Self::List { pattern, n, } => {
                 repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
             },
-            Self::Tags { pattern: _, list: _, delete: _, new_name: _ } => {
-                //TODO
+            Self::Tags { .. } => {
+                //TODO implement tags subcommand
             },
-            Self::Config { list: _} => {
-                //TODO
+            Self::Config { .. } => {
+                //TODO implement config subcommand
             },
         }
     }
