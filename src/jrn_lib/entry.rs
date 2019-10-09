@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
 use regex::Regex;
@@ -11,10 +11,15 @@ use super::{JrnError, TimeStamp};
 pub struct JrnEntry {
     pub creation_time: TimeStamp,
     pub tags: Vec<String>,
-    pub file_name: String,
+    pub file_path: PathBuf,
 }
 
 impl JrnEntry {
+
+    pub fn file_path_str(&self) -> &str {
+        self.file_path.to_str().unwrap()
+    }
+
     /// tries to reads an entry from a path, if possible
     pub fn read_entry(path: &Path) -> Option<Self> {
 
@@ -44,11 +49,11 @@ impl JrnEntry {
 
                 let creation_time = TimeStamp::from_ymdhm(year, month, day, hr, min);
                 let tags: Vec<String> = tag_str.split('_').map(String::from).collect();
-                let file_name: String = String::from(path.file_name().unwrap().to_str().unwrap());
+                let file_path: PathBuf = PathBuf::from(path.file_name().unwrap().to_str().unwrap());
                 let entry = JrnEntry {
                     creation_time,
                     tags,
-                    file_name,
+                    file_path,
                 };
                 return Some(entry)
             }
@@ -65,19 +70,25 @@ impl JrnEntry {
         
         Ok(())
     }
+
+    pub fn remove_tag(&mut self, tag: &str) -> std::io::Result<()> {
+
+        Ok(())
+    }
 }
 
 impl std::fmt::Display for JrnEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let fps = self.file_path_str();
         //write the filepath
-        writeln!(f, "{}", self.file_name)?;
-        for _ in 0..self.file_name.chars().count() {
+        writeln!(f, "{}", fps)?;
+        for _ in 0..fps.chars().count() {
             write!(f, "-")?;
         }
         writeln!(f)?;
 
         //write the contents of the file
-        let mut file = File::open(Path::new(&self.file_name)).expect("File Not Found");
+        let mut file = File::open(&self.file_path).expect("File Not Found");
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
         writeln!(f, "{}", contents)?;
@@ -92,7 +103,7 @@ pub struct JrnEntryFilter {
 
 impl JrnEntryFilter {
     pub fn into_filter(self) -> Box<impl Fn(&JrnEntry) -> bool> {
-        Box::new(move |entry: &JrnEntry| self.regex.is_match(&entry.file_name))
+        Box::new(move |entry: &JrnEntry| self.regex.is_match(&entry.file_path_str()))
     }
 
     pub fn from_pattern(re: &str) -> Result<Self, JrnError> {
