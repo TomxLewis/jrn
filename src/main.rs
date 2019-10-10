@@ -60,6 +60,15 @@ enum Jrn {
         n: Option<usize>,
     },
 
+    /// Pushes a tag to the last opened entry
+    PushTag {
+        /// The string tag to be pushed
+        tag: String,
+        /// The UID of the entry to push it to.
+        /// Defaults to the last entered entry.
+        entry_descriptor: Option<String>,
+    },
+
     /// Modifies tags in the working jrn repository
     ///
     /// TODO specify tags subcommand
@@ -113,6 +122,10 @@ impl Jrn {
             },
             Self::List { pattern, n, } => {
                 repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
+            },
+            Self::PushTag { tag, entry_descriptor } => {
+                //TODO use entry_descriptor
+                repo.push_tag(&tag, Some(1));
             },
             Self::Tags { .. } => {
                 //TODO implement tags subcommand
