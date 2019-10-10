@@ -37,6 +37,16 @@ impl TagContainer {
         }
     }
 
+    pub fn remove(&mut self, tag: &str) {
+        if let Some(num) = self.inner.get_mut(tag) {
+            if *num > 1 {
+                *num -= 1;
+            }
+        } else {
+            self.inner.remove(tag);
+        }
+    }
+
     pub fn count(&self, tag: &str) -> Option<&u16> {
         self.inner.get(tag)
     }
