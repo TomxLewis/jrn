@@ -1,4 +1,4 @@
-use std::collections::{VecDeque, BTreeSet};
+use std::collections::VecDeque;
 use std::io::Write;
 use std::fs::{self, File, OpenOptions};
 use std::path::{PathBuf, Path};
@@ -10,7 +10,7 @@ pub struct JrnRepo {
     config: Settings,
     ignore: IgnorePatterns,
     /// entries sorted by creation time
-    entries: BTreeSet<JrnEntry>,
+    entries: Vec<JrnEntry>,
     tags: TagContainer,
 }
 
@@ -29,11 +29,12 @@ impl JrnRepo {
         let mut repo = JrnRepo {
             config,
             ignore,
-            entries: BTreeSet::new(),
+            entries: Vec::new(),
             tags: TagContainer::new(),
         };
         let current_dir: PathBuf = std::env::current_dir().expect("jrn needs access to the current working directory");
         repo.collect_entries(&current_dir);
+        repo.entries.sort();
         Ok(repo)
     }
 
@@ -41,22 +42,23 @@ impl JrnRepo {
     ///
     /// returning Err if failing to create the entry
     pub fn create_entry(&mut self, tags: Option<Vec<String>>, content: Option<String>, skip_edit: bool) -> Result<(), JrnError> {
-        let tags = tags.unwrap_or_default();
-        let tags_ref: Vec<&str> = tags.iter().map(|f| f.as_str()).collect();
-        let path = self.build_path(tags_ref);
-        let file: Option<File> = if content.is_some() || skip_edit { OpenOptions::new().write(true).create(true).open(&path).ok() } else { None };
+        let entry = JrnEntry::new(&self.config, None, tags, None);
+        let path = &entry.file_path;
 
+        let file: Option<File> = if content.is_some() || skip_edit { OpenOptions::new().write(true).create(true).open(path).ok() } else { None };
+
+        //create the file
         if let Some(content) = content {
             file.unwrap().write_all(content.as_bytes())?;
-        }
-        else if skip_edit {
-            //create the file if not launching editor
+        } else {
             file.unwrap().write_all(&[])?;
         }
 
         if !skip_edit {
             self.config.launch_editor(Some(&path))?;
         }
+
+        self.entries.push(entry);
 
         Ok(())
     }
@@ -91,56 +93,23 @@ impl JrnRepo {
         }
     }
 
-    pub fn push_tag(&mut self, tag: &str, num: Option<usize>) {
+    pub fn push_tag(&mut self, tag: &str, _descriptor: Option<String>) {
+        //TODO search for descriptor
+
+        self.tags.insert(tag);
         //push only to the last entry if not specified
-        let num = num.unwrap_or(1);
-        //TODO
-        //let mut entry_iter = self.entries.iter_mut().rev();
-
-        for _ in 0..num {
-            //if let Some(mut entry) = entry_iter.next() {
-                //entry.push_tag(&tag);
-            //}
-        }
-    }
-
-    /// formats the file name for a potential new entry
-    /// TODO move method to JrnEntry
-    fn build_path(&self, tags: Vec<&str>) -> PathBuf {
-        let file_name = self.format_file_name(tags);
-        PathBuf::from(file_name)
-    }
-
-    /// formats the file name based on the format settings in this config
-    fn format_file_name(&self, tags: Vec<&str>) -> String {
-        let mut file_name = String::new();
-        let tag_start_char = self.config.get_tag_start();
-        let tag_delim = self.config.get_tag_deliminator();
-
-        //handle time
-        let ts = TimeStamp::now();
-        let time_string = ts.to_string();
-        file_name.push_str(&time_string);
-
-        //gather all tags
-        let mut tags = tags.clone();
-        tags.append(&mut self.config.get_tags());
-
-        if !tags.is_empty() {
-            file_name.push_str(tag_start_char);
-        }
-
-        let tag_len = tags.len();
-        for (i, tag) in tags.iter().enumerate() {
-            file_name.push_str(tag);
-            if i < (tag_len - 1) {
-                file_name.push_str(tag_delim);
+        let len = self.entries.len();
+        if len > 0 {
+            let entry = self.entries.get_mut(len - 1).unwrap();
+            if let Err(e) = entry.push_tag(tag, &self.config) {
+                self.tags.remove(tag);
+                log::error!("{}", e);
             }
         }
-
-        file_name
     }
 
+    /// Helper method to recursively search cd for entries
+    /// after calling this method, must preform sorting on entries
     fn collect_entries(&mut self, path: &Path) {
         if self.ignore.matches(path) {
             return
@@ -155,12 +124,11 @@ impl JrnRepo {
                 }
             }
         }
-        else if let Some(entry) = JrnEntry::read_entry(path) {
+        else if let Some(entry) = JrnEntry::read_entry(path, &self.config) {
             for tag in &entry.tags {
                 self.tags.insert(tag);
             }
-            self.entries.insert(entry);
+            self.entries.push(entry);
         }
     }
-
 }

@@ -50,6 +50,7 @@ enum Jrn {
         n: Option<usize>,
     },
 
+    #[structopt(alias = "pt")]
     /// Pushes a tag to the last opened entry
     PushTag {
         /// The tag to be pushed
@@ -109,15 +110,14 @@ impl Jrn {
 
     fn match_on_subcommand(self, mut repo: JrnRepo) {
         match self {
-            Self::New {skip_opening_editor, location, tags, } => {
+            Self::New {skip_opening_editor, location, tags } => {
                 repo.create_entry(tags, location, skip_opening_editor).expect("Failure creating entry");
             },
-            Self::List { pattern, n, } => {
+            Self::List { pattern, n } => {
                 repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
             },
             Self::PushTag { tag, entry_descriptor } => {
-                //TODO use entry_descriptor
-                repo.push_tag(&tag, Some(1));
+                repo.push_tag(&tag, entry_descriptor);
             },
             Self::Tags { .. } => {
                 //TODO implement tags subcommand

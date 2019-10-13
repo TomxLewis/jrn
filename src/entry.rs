@@ -4,24 +4,68 @@ use std::io::Read;
 use regex::Regex;
 use lazy_static::lazy_static;
 
-use super::{JrnError, TimeStamp};
+use super::{JrnError, Settings, TimeStamp};
 
 /// the in memory representation of a jrn entry
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
 pub struct JrnEntry {
     pub creation_time: TimeStamp,
+    pub location: Option<String>,
     pub tags: Vec<String>,
     pub file_path: PathBuf,
 }
 
 impl JrnEntry {
+    /// Creates and writes a new entry
+    pub fn new(config: &Settings, creation_time: Option<TimeStamp>, tags: Option<Vec<String>>, location: Option<String>) -> Self {
+        let creation_time = creation_time.unwrap_or_else(TimeStamp::now);
+        let tags = tags.unwrap_or_default();
+        let mut entry = JrnEntry {
+            creation_time,
+            location,
+            tags,
+            file_path: PathBuf::new()
+        };
+        entry.build_file_path(config);
+        entry
+    }
+
+    fn build_file_path(&mut self, config: &Settings) {
+        let mut file_name = String::new();
+        let tag_start = config.get_tag_start();
+        let tag_delim = config.get_tag_deliminator();
+
+        //handle time
+        file_name.push_str(&self.creation_time.to_string());
+
+        //handle tags
+        if !self.tags.is_empty() {
+            file_name.push(tag_start);
+        }
+        let tag_len = self.tags.len();
+        for (i, tag) in self.tags.iter().enumerate() {
+            file_name.push_str(tag);
+            if i < (tag_len - 1) {
+                file_name.push(tag_delim);
+            }
+        }
+        let path = PathBuf::from(file_name);
+        self.file_path = path;
+    }
+
+    fn update_file_path(&mut self, config: &Settings) -> std::io::Result<()> {
+        let old = self.file_path.clone();
+        self.build_file_path(config);
+        std::fs::rename(old, &self.file_path)?;
+        Ok(())
+    }
 
     pub fn file_path_str(&self) -> &str {
         self.file_path.to_str().unwrap()
     }
 
     /// tries to reads an entry from a path, if possible
-    pub fn read_entry(path: &Path) -> Option<Self> {
+    pub fn read_entry(path: &Path, config: &Settings) -> Option<Self> {
 
         lazy_static!(
             static ref RE: Regex = Regex::new(r"(?x)
@@ -48,10 +92,12 @@ impl JrnEntry {
                 let tag_str: &str = captures.name("tags").unwrap().as_str();
 
                 let creation_time = TimeStamp::from_ymdhm(year, month, day, hr, min);
-                let tags: Vec<String> = tag_str.split('_').map(String::from).collect();
-                let file_path: PathBuf = PathBuf::from(path.file_name().unwrap().to_str().unwrap());
+                let tag_delim = config.get_tag_deliminator();
+                let tags: Vec<String> = tag_str.split(tag_delim).map(String::from).collect();
+                let file_path: PathBuf = PathBuf::from(path);
                 let entry = JrnEntry {
                     creation_time,
+                    location: Some(String::from("")), //TODO use location
                     tags,
                     file_path,
                 };
@@ -63,16 +109,9 @@ impl JrnEntry {
     }
 
     /// Pushes a tag to this entry if possible
-    pub fn push_tag(&mut self, tag: &str) -> std::io::Result<()> {
+    pub fn push_tag(&mut self, tag: &str, config: &Settings) -> std::io::Result<()> {
         self.tags.push(String::from(tag));
-        
-        //TODO place the tag in the entries contents or/and filename
-        
-        Ok(())
-    }
-
-    pub fn remove_tag(&mut self, tag: &str) -> std::io::Result<()> {
-
+        self.update_file_path(config)?;
         Ok(())
     }
 }

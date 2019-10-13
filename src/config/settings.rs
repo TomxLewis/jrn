@@ -84,12 +84,12 @@ impl Settings {
         working_cfg.merge(Settings::default())
     }
 
-    pub fn get_tag_deliminator(&self) -> &str {
-        self.map.get(&JrnSetting::TagDeliminator).unwrap()
+    pub fn get_tag_deliminator(&self) -> char {
+        self.map.get(&JrnSetting::TagDeliminator).unwrap().chars().next().unwrap()
     }
 
-    pub fn get_tag_start(&self) -> &str {
-        self.map.get(&JrnSetting::TagStart).unwrap()
+    pub fn get_tag_start(&self) -> char {
+        self.map.get(&JrnSetting::TagStart).unwrap().chars().next().unwrap()
     }
 
     pub fn get_tags(&self) -> Vec<&str> {
