@@ -13,11 +13,6 @@ fn main() {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(
-    setting(AppSettings::VersionlessSubcommands),
-    setting(AppSettings::DisableVersion),
-    setting(AppSettings::SubcommandRequiredElseHelp),
-)]
 /// the stupid journaling system
 /// 
 /// command line journaling that integrates with git for version control
@@ -25,18 +20,13 @@ enum Jrn {
     /// Craft a new entry
     /// 
     /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry.
-    /// 
-    /// However if an entry already exists it will be opened for editing.
+    /// If an entry already exists at the current time and location it will be opened
     New {
         #[structopt(short = "q", long = "quick")]
         /// Don't open the editor, just create the entry
         skip_opening_editor: bool,
 
-        #[structopt(
-            short,
-            long,
-            env = "JRN_LOCATION",
-        )]
+        #[structopt(short, long, env = "JRN_LOCATION")]
         /// Location the new entry was created
         ///
         /// The location can be pulled from the command line, the environment or the configuration
@@ -62,9 +52,9 @@ enum Jrn {
 
     /// Pushes a tag to the last opened entry
     PushTag {
-        /// The string tag to be pushed
+        /// The tag to be pushed
         tag: String,
-        /// The UID of the entry to push it to.
+        /// An identifier of the entry to push to.
         /// Defaults to the last entered entry.
         entry_descriptor: Option<String>,
     },
@@ -108,10 +98,14 @@ enum Jrn {
 }
 
 impl Jrn {
-    /// app builder in which to change any configuration settings
-    /// not possible to change through structopt
+    // app builder in which to change apply any [clap::AppSettings]
+    // using this pattern allows a shorter structopt derive
     fn build_app() -> Self {
-        let clap_app = Jrn::clap().global_setting(AppSettings::DisableHelpFlags);
+        let clap_app = Jrn::clap()
+            .global_setting(AppSettings::DisableHelpFlags)
+            .setting(AppSettings::VersionlessSubcommands)
+            .setting(AppSettings::DisableVersion)
+            .setting(AppSettings::SubcommandRequiredElseHelp);
         Jrn::from_clap(&clap_app.get_matches())
     }
 
