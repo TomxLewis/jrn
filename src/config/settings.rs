@@ -47,17 +47,17 @@ impl Settings {
     ///     ./.jrnconfig
     ///
     /// More local settings will overwrite global settings
-    /// For Example:
+    /// For Example vim would be used as the editor in the following case
     ///     ~/.jrnconfig
     ///         editor=ed
     ///     ./.jrnconfig
     ///         editor=vim
     ///
-    /// In the above case vim would be used as the editor
-    ///
     /// If no value is set for a config option the default is used
     ///
-    pub fn find_or_default() -> Result<Self, JrnError> {
+    /// This function will not fail, but rather log warnings
+    /// these can be used by the applications logger
+    pub fn find_or_default() -> Self {
         let mut working_cfg: Settings = Settings::empty();
         let optional_paths: Vec<Option<PathBuf>> = vec![dirs::config_dir(),
                                                         dirs::home_dir(),
@@ -73,16 +73,15 @@ impl Settings {
             })
             .collect();
 
-        // try to read from each, propagating errors, returning the most local config options if any
+        // try to read from each, returning the most local config options if any
         for path_buf in paths_to_check {
-            let found = Settings::read(&path_buf)?;
-            working_cfg = working_cfg.merge(found);
+            if let Some(found) = Settings::read(&path_buf) {
+                working_cfg = working_cfg.merge(found);
+            }
         }
 
-        //add any necessary but not found settings from the default
-        working_cfg = working_cfg.merge(Settings::default());
-
-        Ok(working_cfg)
+        //add any necessary but not found settings from the default and return
+        working_cfg.merge(Settings::default())
     }
 
     pub fn get_tag_deliminator(&self) -> &str {
@@ -168,22 +167,31 @@ impl Settings {
     }
 
     /// Tries to read self from file path,
-    /// returning Ok(Settings) if found
-    /// returns Ok(Settings::empty()) if not found
     ///
-    /// returns Err on IoError or serialization error
-    fn read(path: &Path) -> Result<Self, JrnError> {
-        let mut result = Settings::empty();
+    /// returns None if not found
+    /// in the case of IO errors, or configuration formatting errors this function will log warnings
+    fn read(path: &Path) -> Option<Self> {
+        use log::warn;
+        let mut result: Option<Self> = None;
 
         if path.exists() {
             if let Ok(mut file) = File::open(path) {
                 let mut contents: Vec<u8> = Vec::new();
-                file.read_to_end(&mut contents)?;
-                result = from_bytes(&contents)?;
+                if file.read_to_end(&mut contents).is_err() {
+                    warn!("Can not read from config file: {:?}", path);
+                    return None
+                }
+
+                if let Ok(serialized) = from_bytes(&contents) {
+                    result.replace(serialized);
+                }
+                else {
+                    warn!("Problem reading configuration from path: {:?}\nSkipping", path);
+                }
             }
         }
 
-        Ok(result)
+        result
     }
 
     /// Writes the struct to a path, truncating any existing file

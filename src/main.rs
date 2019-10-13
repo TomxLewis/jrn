@@ -6,7 +6,7 @@ use structopt::StructOpt;
 use jrn::*;
 
 fn main() {
-    let cfg = Settings::find_or_default().expect("Configuration Parsing Error");
+    let cfg = Settings::find_or_default();
     let ignore = IgnorePatterns::find_or_default();
     let repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
     Jrn::build_app().match_on_subcommand(repo);
