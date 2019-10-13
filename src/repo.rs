@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::io::Write;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::path::{PathBuf, Path};
 
 use super::*;
@@ -45,13 +45,13 @@ impl JrnRepo {
         let entry = JrnEntry::new(&self.config, None, tags, None);
         let path = &entry.file_path;
 
-        let file: Option<File> = if content.is_some() || skip_edit { OpenOptions::new().write(true).create(true).open(path).ok() } else { None };
+        let mut file = OpenOptions::new().write(true).create(true).open(path)?;
 
         //create the file
         if let Some(content) = content {
-            file.unwrap().write_all(content.as_bytes())?;
+            file.write_all(content.as_bytes())?;
         } else {
-            file.unwrap().write_all(&[])?;
+            file.write_all(&[])?;
         }
 
         if !skip_edit {
