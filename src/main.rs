@@ -102,10 +102,8 @@ impl Jrn {
     // using this pattern allows a shorter structopt derive
     fn build_app() -> Self {
         let clap_app = Jrn::clap()
-            .global_setting(AppSettings::DisableHelpFlags)
             .setting(AppSettings::VersionlessSubcommands)
-            .setting(AppSettings::DisableVersion)
-            .setting(AppSettings::SubcommandRequiredElseHelp);
+            .setting(AppSettings::DisableVersion);
         Jrn::from_clap(&clap_app.get_matches())
     }
 
