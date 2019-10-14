@@ -128,7 +128,7 @@ static DISPLAY_LENGTH: usize = 16;
 
 impl std::fmt::Display for JrnEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        writeln!(f, "{}", self.get_hash())?;
+        writeln!(f, "{:X}", self.get_hash())?;
         writeln!(f, "{}", self.file_path_str())?;
 
         for _ in 0..DISPLAY_LENGTH {
