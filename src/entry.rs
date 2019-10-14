@@ -124,7 +124,7 @@ impl JrnEntry {
     }
 }
 
-static DISPLAY_LENGTH: usize = 32;
+static DISPLAY_LENGTH: usize = 100;
 
 impl std::fmt::Display for JrnEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -134,6 +134,11 @@ impl std::fmt::Display for JrnEntry {
         writeln!(f, "{}", &separator)?;
         writeln!(f, "entry {:x}", self.get_hash())?;
         writeln!(f, "time  {}", self.creation_time)?;
+        write!(f, "tags  ")?;
+        for tag in &self.tags {
+            write!(f, "{} ", tag)?;
+        }
+        writeln!(f)?;
         writeln!(f, "{}", &separator)?;
 
         //write the contents of the file
