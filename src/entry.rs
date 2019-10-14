@@ -68,6 +68,10 @@ impl JrnEntry {
         Ok(())
     }
 
+    pub fn get_file_name(&self) -> &str {
+        self.file_path.file_name().unwrap().to_str().unwrap()
+    }
+
     pub fn file_path_str(&self) -> &str {
         self.file_path.to_str().unwrap()
     }
@@ -128,13 +132,13 @@ static DISPLAY_LENGTH: usize = 16;
 
 impl std::fmt::Display for JrnEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        writeln!(f, "{:x}", self.get_hash())?;
-        writeln!(f, "{}", self.file_path_str())?;
+        use std::iter::{repeat, FromIterator};
+        let separator = String::from_iter(repeat('-').take(DISPLAY_LENGTH));
 
-        for _ in 0..DISPLAY_LENGTH {
-            write!(f, "-")?;
-        }
-        writeln!(f)?;
+        writeln!(f, "{}", &separator)?;
+        writeln!(f, "{:x}", self.get_hash())?;
+        writeln!(f, "{}", self.get_file_name())?;
+        writeln!(f, "{}", &separator)?;
 
         //write the contents of the file
         let mut file = File::open(&self.file_path).expect("File Not Found");
