@@ -1,4 +1,6 @@
 use chrono::prelude::*;
+use serde::export::Formatter;
+use serde::export::fmt::Error;
 
 static TIMESTAMP_FMT: &str = "%Y-%m-%d_%H%M";
 
@@ -23,9 +25,11 @@ impl TimeStamp {
             inner: ndt
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        self.inner.format(TIMESTAMP_FMT).to_string()
+impl std::fmt::Display for TimeStamp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        writeln!(f, "{}", self.inner.format(TIMESTAMP_FMT))
     }
 }
 
