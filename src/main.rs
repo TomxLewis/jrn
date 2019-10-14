@@ -64,6 +64,7 @@ enum Jrn {
     ///
     /// TODO specify tags subcommand
     Tags {
+        #[structopt(default_value = ".*")]
         /// Filter to match tags against
         /// 
         /// All operations will only apply to tags that match the filter
