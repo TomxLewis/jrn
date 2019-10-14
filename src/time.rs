@@ -29,7 +29,7 @@ impl TimeStamp {
 
 impl std::fmt::Display for TimeStamp {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        writeln!(f, "{}", self.inner.format(TIMESTAMP_FMT))
+        write!(f, "{}", self.inner.format(TIMESTAMP_FMT))
     }
 }
 
