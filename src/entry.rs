@@ -5,6 +5,8 @@ use regex::Regex;
 use lazy_static::lazy_static;
 
 use super::{JrnError, Settings, TimeStamp};
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 
 /// the in memory representation of a jrn entry
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
@@ -28,6 +30,12 @@ impl JrnEntry {
         };
         entry.build_file_path(config);
         entry
+    }
+
+    pub fn get_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 
     fn build_file_path(&mut self, config: &Settings) {
@@ -116,12 +124,14 @@ impl JrnEntry {
     }
 }
 
+static DISPLAY_LENGTH: usize = 16;
+
 impl std::fmt::Display for JrnEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        let fps = self.file_path_str();
-        //write the filepath
-        writeln!(f, "{}", fps)?;
-        for _ in 0..fps.chars().count() {
+        writeln!(f, "{}", self.get_hash())?;
+        writeln!(f, "{}", self.file_path_str())?;
+
+        for _ in 0..DISPLAY_LENGTH {
             write!(f, "-")?;
         }
         writeln!(f)?;
