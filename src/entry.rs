@@ -1,10 +1,11 @@
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use super::{JrnError, Settings, TimeStamp};
+use super::{JrnError, Location, Settings, TimeStamp};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -12,7 +13,7 @@ use std::hash::{Hash, Hasher};
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
 pub struct JrnEntry {
     pub creation_time: TimeStamp,
-    pub location: Option<String>,
+    pub location: Location,
     pub tags: Vec<String>,
     pub file_path: PathBuf,
 }
@@ -27,6 +28,9 @@ impl JrnEntry {
     ) -> Self {
         let creation_time = creation_time.unwrap_or_else(TimeStamp::now);
         let tags = tags.unwrap_or_default();
+        let location: Location = location
+            .map(Location::from)
+            .unwrap_or_default(); //TODO pull location from config
         let mut entry = JrnEntry {
             creation_time,
             location,
@@ -57,8 +61,8 @@ impl JrnEntry {
             .unwrap();
         };
 
-        if let Some(filename) = path.to_str() {
-            if let Some(captures) = RE.captures(filename) {
+        if let Some(file_path) = path.to_str() {
+            if let Some(captures) = RE.captures(file_path) {
                 let year: i32 = captures.name("year").unwrap().as_str().parse().unwrap();
                 let month: u32 = captures.name("month").unwrap().as_str().parse().unwrap();
                 let day: u32 = captures.name("day").unwrap().as_str().parse().unwrap();
@@ -72,7 +76,7 @@ impl JrnEntry {
                 let file_path: PathBuf = PathBuf::from(path);
                 let entry = JrnEntry {
                     creation_time,
-                    location: Some(String::from("")), //TODO use location
+                    location: Location::default(), //TODO get location from file_path
                     tags,
                     file_path,
                 };
@@ -135,14 +139,15 @@ impl JrnEntry {
 
 static DISPLAY_LENGTH: usize = 100;
 
-impl std::fmt::Display for JrnEntry {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+impl Display for JrnEntry {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use std::iter::{repeat, FromIterator};
         let separator = String::from_iter(repeat('-').take(DISPLAY_LENGTH));
 
         writeln!(f, "{}", &separator)?;
-        writeln!(f, "entry {:x}", self.get_hash())?;
-        writeln!(f, "time  {}", self.creation_time)?;
+        writeln!(f, "entry    {:x}", self.get_hash())?;
+        writeln!(f, "time     {}", self.creation_time)?;
+        writeln!(f, "location {}", self.location)?;
         write!(f, "tags  ")?;
         for tag in &self.tags {
             write!(f, "{} ", tag)?;
@@ -155,7 +160,6 @@ impl std::fmt::Display for JrnEntry {
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
         writeln!(f, "{}", contents)?;
-
         Ok(())
     }
 }
