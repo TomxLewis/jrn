@@ -145,10 +145,10 @@ impl Display for JrnEntry {
         let separator = String::from_iter(repeat('-').take(DISPLAY_LENGTH));
 
         writeln!(f, "{}", &separator)?;
-        writeln!(f, "entry    {:x}", self.get_hash())?;
-        writeln!(f, "time     {}", self.creation_time)?;
-        writeln!(f, "location {}", self.location)?;
-        write!(f, "tags  ")?;
+        writeln!(f, "entry     {:x}", self.get_hash())?;
+        writeln!(f, "time      {}", self.creation_time)?;
+        writeln!(f, "location  {}", self.location)?;
+        write!(f, "tags      ")?;
         for tag in &self.tags {
             write!(f, "{} ", tag)?;
         }
