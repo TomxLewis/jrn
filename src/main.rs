@@ -14,11 +14,11 @@ fn main() {
 
 #[derive(Debug, StructOpt)]
 /// the stupid journaling system
-/// 
+///
 /// command line journaling that integrates with git for version control
 enum Jrn {
     /// Craft a new entry
-    /// 
+    ///
     /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry.
     /// If an entry already exists at the current time and location it will be opened
     New {
@@ -66,7 +66,7 @@ enum Jrn {
     Tags {
         #[structopt(default_value = ".*")]
         /// Filter to match tags against
-        /// 
+        ///
         /// All operations will only apply to tags that match the filter
         /// Confirmation will be asked for before modifying multiple entries
         pattern: String,
@@ -96,7 +96,7 @@ enum Jrn {
         ///
         /// Relevant git config options will be displayed separate from application config options
         list: bool,
-    }
+    },
 }
 
 impl Jrn {
@@ -111,21 +111,30 @@ impl Jrn {
 
     fn match_on_subcommand(self, mut repo: JrnRepo) {
         match self {
-            Self::New {skip_opening_editor, location, tags } => {
-                repo.create_entry(tags, location, skip_opening_editor).expect("Failure creating entry");
-            },
+            Self::New {
+                skip_opening_editor,
+                location,
+                tags,
+            } => {
+                repo.create_entry(tags, location, skip_opening_editor)
+                    .expect("Failure creating entry");
+            }
             Self::List { pattern, n } => {
-                repo.list_entries(pattern.as_ref(), n).expect("Error listing entries");
-            },
-            Self::PushTag { tag, entry_descriptor } => {
+                repo.list_entries(pattern.as_ref(), n)
+                    .expect("Error listing entries");
+            }
+            Self::PushTag {
+                tag,
+                entry_descriptor,
+            } => {
                 repo.push_tag(&tag, entry_descriptor);
-            },
+            }
             Self::Tags { .. } => {
                 //TODO implement tags subcommand
-            },
+            }
             Self::Config { .. } => {
                 //TODO implement config subcommand
-            },
+            }
         }
     }
 }
@@ -134,8 +143,5 @@ impl Jrn {
 mod test {
 
     #[test]
-    fn new() {
-    }
-
-
+    fn new() {}
 }

@@ -54,7 +54,7 @@ impl IgnorePatterns {
             if let Some(os_str) = path.file_name() {
                 if let Some(p) = os_str.to_str() {
                     if r.is_match(p) {
-                        return true
+                        return true;
                     }
                 } else {
                     warn!("Invalid UTF8, skipping path: {:?}", path);
@@ -64,7 +64,6 @@ impl IgnorePatterns {
 
         false
     }
-
 
     /// read an ignore file from a path
     /// returns empty JrnIgnore if no file is found at path
@@ -81,8 +80,7 @@ impl IgnorePatterns {
                 if file.read_to_string(&mut buf).is_ok() {
                     result.filters = buf.lines().map(String::from).collect();
                     result.initialized = !result.filters.is_empty();
-                }
-                else {
+                } else {
                     warn!("Skipping non-unicode encoded file: {}", path.display());
                 }
             }
@@ -96,7 +94,7 @@ impl IgnorePatterns {
         IgnorePatterns {
             filters: HashSet::new(),
             initialized: true,
-            regex_list: vec![]
+            regex_list: vec![],
         }
     }
 
@@ -117,7 +115,7 @@ impl IgnorePatterns {
         for result in self.filters.iter().map(|s| Regex::new(s)) {
             match result {
                 Ok(regex) => self.regex_list.push(regex),
-                Err(e) => warn!("Invalid Regex\n{}", e)
+                Err(e) => warn!("Invalid Regex\n{}", e),
             }
         }
         self.initialized = true;

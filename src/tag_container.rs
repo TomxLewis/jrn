@@ -1,5 +1,5 @@
-use std::collections::{BinaryHeap, HashMap};
 use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap};
 
 #[derive(Debug, Default)]
 pub struct TagContainer {
@@ -63,7 +63,6 @@ impl TagContainer {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -88,7 +87,7 @@ mod test {
                 0 => assert_eq!(ct.1, "B"),
                 1 => assert_eq!(ct.1, "A"),
                 2 => assert_eq!(ct.1, "C"),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
     }

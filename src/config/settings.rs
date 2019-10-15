@@ -1,10 +1,10 @@
 use ron::de::from_bytes;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::collections::BTreeMap;
 
 use super::*;
 
@@ -12,7 +12,7 @@ use super::*;
 #[serde(transparent)]
 pub struct Settings {
     #[serde(flatten)]
-    map: BTreeMap<JrnSetting, String>
+    map: BTreeMap<JrnSetting, String>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Hash, Eq, Ord, PartialOrd)]
@@ -37,7 +37,6 @@ impl Default for Settings {
 }
 
 impl Settings {
-
     /// Loads any configuration from the env
     ///
     /// Will check the following locations
@@ -59,12 +58,15 @@ impl Settings {
     /// these can be used by the applications logger
     pub fn find_or_default() -> Self {
         let mut working_cfg: Settings = Settings::empty();
-        let optional_paths: Vec<Option<PathBuf>> = vec![dirs::config_dir(),
-                                                        dirs::home_dir(),
-                                                        std::env::current_dir().ok()];
+        let optional_paths: Vec<Option<PathBuf>> = vec![
+            dirs::config_dir(),
+            dirs::home_dir(),
+            std::env::current_dir().ok(),
+        ];
 
         // filter map possible config directories to config paths
-        let paths_to_check: Vec<PathBuf> = optional_paths.into_iter()
+        let paths_to_check: Vec<PathBuf> = optional_paths
+            .into_iter()
             .filter_map(|p: Option<PathBuf>| {
                 p.map(|mut path_buf: PathBuf| {
                     path_buf.push(String::from(super::JRN_CONFIG_FILE_NAME));
@@ -85,11 +87,21 @@ impl Settings {
     }
 
     pub fn get_tag_deliminator(&self) -> char {
-        self.map.get(&JrnSetting::TagDeliminator).unwrap().chars().next().unwrap()
+        self.map
+            .get(&JrnSetting::TagDeliminator)
+            .unwrap()
+            .chars()
+            .next()
+            .unwrap()
     }
 
     pub fn get_tag_start(&self) -> char {
-        self.map.get(&JrnSetting::TagStart).unwrap().chars().next().unwrap()
+        self.map
+            .get(&JrnSetting::TagStart)
+            .unwrap()
+            .chars()
+            .next()
+            .unwrap()
     }
 
     pub fn get_tags(&self) -> Vec<&str> {
@@ -136,9 +148,12 @@ impl Settings {
         Ok(())
     }
 
-
     /// convenience method for an empty settings object
-    fn empty() -> Self { Settings { map: BTreeMap::new() } }
+    fn empty() -> Self {
+        Settings {
+            map: BTreeMap::new(),
+        }
+    }
 
     /// merge an other into this,
     /// favoring the config settings in self if found in both
@@ -149,8 +164,7 @@ impl Settings {
                 JrnSetting::ConfigLocalTags => {
                     if !self.map.contains_key(&setting) {
                         self.map.insert(setting, value);
-                    }
-                    else {
+                    } else {
                         //TODO dedupe tags
                         let current = self.map.get(&setting).unwrap();
                         value.push_str(&format!(",{}", current));
@@ -179,14 +193,16 @@ impl Settings {
                 let mut contents: Vec<u8> = Vec::new();
                 if file.read_to_end(&mut contents).is_err() {
                     warn!("Can not read from config file: {:?}", path);
-                    return None
+                    return None;
                 }
 
                 if let Ok(serialized) = from_bytes(&contents) {
                     result.replace(serialized);
-                }
-                else {
-                    warn!("Problem reading configuration from path: {:?}\nSkipping", path);
+                } else {
+                    warn!(
+                        "Problem reading configuration from path: {:?} Skipping",
+                        path
+                    );
                 }
             }
         }
@@ -201,16 +217,18 @@ impl Settings {
     #[cfg(test)]
     fn write(&self, path: &Path) -> Result<(), JrnError> {
         use std::io::Write;
+        let mut serializer =
+            ron::ser::Serializer::new(Some(ron::ser::PrettyConfig::default()), true);
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path)?;
 
-        let mut serializer = ron::ser::Serializer::new(Some(ron::ser::PrettyConfig::default()), true);
-        let mut file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
         self.serialize(&mut serializer)?;
-
-        let serialization_result = serializer.into_output_string();
-        file.write_all(&serialization_result.as_bytes()).unwrap();
+        file.write_all(&serializer.into_output_string().as_bytes())?;
         Ok(())
     }
-
 }
 
 #[cfg(test)]
@@ -225,4 +243,3 @@ mod test {
         std::fs::remove_file(&path).unwrap();
     }
 }
-

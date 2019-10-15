@@ -7,7 +7,7 @@ pub enum JrnError {
     Serialization(BoxedError),
     InvalidUnicode,
     InvalidRegex,
-    ParseIntError(BoxedError)
+    ParseIntError(BoxedError),
 }
 
 impl std::error::Error for JrnError {}

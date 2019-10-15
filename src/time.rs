@@ -1,6 +1,6 @@
 use chrono::prelude::*;
-use serde::export::Formatter;
 use serde::export::fmt::Error;
+use serde::export::Formatter;
 
 static TIMESTAMP_FMT: &str = "%Y-%m-%d_%H%M";
 
@@ -13,17 +13,13 @@ impl TimeStamp {
     pub fn now() -> Self {
         let dt: DateTime<Local> = Local::now();
         let ndt: NaiveDateTime = dt.naive_local();
-        TimeStamp {
-            inner: ndt,
-        }
+        TimeStamp { inner: ndt }
     }
 
-    pub fn from_ymdhm(year: i32, month: u32, day: u32, hour: u32, minute:u32) -> Self {
+    pub fn from_ymdhm(year: i32, month: u32, day: u32, hour: u32, minute: u32) -> Self {
         let date = NaiveDate::from_ymd(year, month, day);
         let ndt = date.and_hms(hour, minute, 0);
-        TimeStamp {
-            inner: ndt
-        }
+        TimeStamp { inner: ndt }
     }
 }
 

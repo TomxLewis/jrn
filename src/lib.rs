@@ -1,20 +1,20 @@
 extern crate chrono;
 extern crate dirs;
+extern crate log;
 extern crate ron;
 extern crate serde;
-extern crate log;
 
-mod error;
-mod time;
 mod config;
-mod repo;
 mod entry;
+mod error;
+mod repo;
 mod tag_container;
+mod time;
 
 //internals
-use time::TimeStamp;
 use entry::{JrnEntry, JrnEntryFilter};
 pub use tag_container::{CountAndTag, TagContainer};
+use time::TimeStamp;
 
 //exports
 pub use config::{IgnorePatterns, Settings};

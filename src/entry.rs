@@ -1,12 +1,12 @@
-use std::path::{Path, PathBuf};
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::fs::File;
 use std::io::Read;
-use regex::Regex;
-use lazy_static::lazy_static;
+use std::path::{Path, PathBuf};
 
 use super::{JrnError, Settings, TimeStamp};
-use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 /// the in memory representation of a jrn entry
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
@@ -19,19 +19,83 @@ pub struct JrnEntry {
 
 impl JrnEntry {
     /// Creates and writes a new entry
-    pub fn new(config: &Settings, creation_time: Option<TimeStamp>, tags: Option<Vec<String>>, location: Option<String>) -> Self {
+    pub fn new(
+        config: &Settings,
+        creation_time: Option<TimeStamp>,
+        tags: Option<Vec<String>>,
+        location: Option<String>,
+    ) -> Self {
         let creation_time = creation_time.unwrap_or_else(TimeStamp::now);
         let tags = tags.unwrap_or_default();
         let mut entry = JrnEntry {
             creation_time,
             location,
             tags,
-            file_path: PathBuf::new()
+            file_path: PathBuf::new(),
         };
         entry.build_file_path(config);
         entry
     }
 
+    /// Reads an entry from a file path
+    pub fn read_entry(path: &Path, config: &Settings) -> Option<Self> {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(
+                r"(?x)
+            (?P<year>\d{4})
+            -
+            (?P<month>\d{2})
+            -
+            (?P<day>\d{2})
+            _
+            (?P<hr>\d{2})
+            (?P<min>\d{2})
+            -?
+            (?P<tags>.*)?
+            "
+            )
+            .unwrap();
+        };
+
+        if let Some(filename) = path.to_str() {
+            if let Some(captures) = RE.captures(filename) {
+                let year: i32 = captures.name("year").unwrap().as_str().parse().unwrap();
+                let month: u32 = captures.name("month").unwrap().as_str().parse().unwrap();
+                let day: u32 = captures.name("day").unwrap().as_str().parse().unwrap();
+                let hr: u32 = captures.name("hr").unwrap().as_str().parse().unwrap();
+                let min: u32 = captures.name("min").unwrap().as_str().parse().unwrap();
+                let tag_str: &str = captures.name("tags").unwrap().as_str();
+
+                let creation_time = TimeStamp::from_ymdhm(year, month, day, hr, min);
+                let tag_delim = config.get_tag_deliminator();
+                let tags: Vec<String> = tag_str.split(tag_delim).map(String::from).collect();
+                let file_path: PathBuf = PathBuf::from(path);
+                let entry = JrnEntry {
+                    creation_time,
+                    location: Some(String::from("")), //TODO use location
+                    tags,
+                    file_path,
+                };
+                return Some(entry);
+            }
+        }
+
+        None
+    }
+
+    /// Pushes a tag to this entry
+    pub fn push_tag(&mut self, tag: &str, config: &Settings) -> std::io::Result<()> {
+        self.tags.push(String::from(tag));
+        self.update_file_path(config)?;
+        Ok(())
+    }
+
+    /// Formats this entries file_path as a &str
+    pub fn file_path_str(&self) -> &str {
+        self.file_path.to_str().unwrap()
+    }
+
+    /// Hashes the metadata in this entry, ignoring the files contents
     pub fn get_hash(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
@@ -65,61 +129,6 @@ impl JrnEntry {
         let old = self.file_path.clone();
         self.build_file_path(config);
         std::fs::rename(old, &self.file_path)?;
-        Ok(())
-    }
-
-    pub fn file_path_str(&self) -> &str {
-        self.file_path.to_str().unwrap()
-    }
-
-    /// tries to reads an entry from a path, if possible
-    pub fn read_entry(path: &Path, config: &Settings) -> Option<Self> {
-
-        lazy_static!(
-            static ref RE: Regex = Regex::new(r"(?x)
-            (?P<year>\d{4})
-            -
-            (?P<month>\d{2})
-            -
-            (?P<day>\d{2})
-            _
-            (?P<hr>\d{2})
-            (?P<min>\d{2})
-            -?
-            (?P<tags>.*)?
-            ").unwrap();
-        );
-
-        if let Some(filename) = path.to_str() {
-            if let Some(captures) = RE.captures(filename) {
-                let year: i32 = captures.name("year").unwrap().as_str().parse().unwrap();
-                let month: u32 = captures.name("month").unwrap().as_str().parse().unwrap();
-                let day: u32 = captures.name("day").unwrap().as_str().parse().unwrap();
-                let hr: u32 = captures.name("hr").unwrap().as_str().parse().unwrap();
-                let min: u32 = captures.name("min").unwrap().as_str().parse().unwrap();
-                let tag_str: &str = captures.name("tags").unwrap().as_str();
-
-                let creation_time = TimeStamp::from_ymdhm(year, month, day, hr, min);
-                let tag_delim = config.get_tag_deliminator();
-                let tags: Vec<String> = tag_str.split(tag_delim).map(String::from).collect();
-                let file_path: PathBuf = PathBuf::from(path);
-                let entry = JrnEntry {
-                    creation_time,
-                    location: Some(String::from("")), //TODO use location
-                    tags,
-                    file_path,
-                };
-                return Some(entry)
-            }
-        }
-
-        None
-    }
-
-    /// Pushes a tag to this entry if possible
-    pub fn push_tag(&mut self, tag: &str, config: &Settings) -> std::io::Result<()> {
-        self.tags.push(String::from(tag));
-        self.update_file_path(config)?;
         Ok(())
     }
 }

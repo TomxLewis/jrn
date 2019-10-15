@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
-use std::io::Write;
 use std::fs::{self, OpenOptions};
-use std::path::{PathBuf, Path};
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use super::*;
 
@@ -32,7 +32,8 @@ impl JrnRepo {
             entries: Vec::new(),
             tags: TagContainer::new(),
         };
-        let current_dir: PathBuf = std::env::current_dir().expect("jrn needs access to the current working directory");
+        let current_dir: PathBuf =
+            std::env::current_dir().expect("jrn needs access to the current working directory");
         repo.collect_entries(&current_dir);
         repo.entries.sort();
         Ok(repo)
@@ -41,7 +42,12 @@ impl JrnRepo {
     /// Tries to create a new entry in this repo
     ///
     /// returning Err if failing to create the entry
-    pub fn create_entry(&mut self, tags: Option<Vec<String>>, content: Option<String>, skip_edit: bool) -> Result<(), JrnError> {
+    pub fn create_entry(
+        &mut self,
+        tags: Option<Vec<String>>,
+        content: Option<String>,
+        skip_edit: bool,
+    ) -> Result<(), JrnError> {
         let entry = JrnEntry::new(&self.config, None, tags, None);
         let path = &entry.file_path;
 
@@ -67,8 +73,11 @@ impl JrnRepo {
     /// that match the provided string
     pub fn list_entries(&self, pattern: &str, most_recent: Option<usize>) -> Result<(), JrnError> {
         let filter = JrnEntryFilter::from_pattern(pattern)?.into_filter();
+        let mut matched: VecDeque<&JrnEntry> = self.entries
+            .iter()
+            .filter(|entry| filter(entry))
+            .collect();
 
-        let mut matched: VecDeque<&JrnEntry> = self.entries.iter().filter(|entry| filter(entry)).collect();
         if let Some(most_recent) = most_recent {
             let len = matched.len();
             if most_recent < len {
@@ -112,7 +121,7 @@ impl JrnRepo {
     /// after calling this method, must preform sorting on entries
     fn collect_entries(&mut self, path: &Path) {
         if self.ignore.matches(path) {
-            return
+            return;
         }
 
         if path.is_dir() {
@@ -123,8 +132,7 @@ impl JrnRepo {
                     }
                 }
             }
-        }
-        else if let Some(entry) = JrnEntry::read_entry(path, &self.config) {
+        } else if let Some(entry) = JrnEntry::read_entry(path, &self.config) {
             for tag in &entry.tags {
                 self.tags.insert(tag);
             }
