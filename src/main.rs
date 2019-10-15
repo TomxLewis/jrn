@@ -20,7 +20,7 @@ enum Jrn {
     /// Craft a new entry
     ///
     /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry.
-    /// If an entry already exists at the current time and location it will be opened
+    /// If an entry already exists at the current time and location it will be opened.
     New {
         #[structopt(short = "q", long = "quick")]
         /// Don't open the editor, just create the entry
@@ -32,7 +32,10 @@ enum Jrn {
         /// The location can be pulled from the command line, the environment or the configuration
         /// A locally given location e.g. from the command line will override the environment
         /// or configuration set locations.
+        ///
+        /// If no location is found location will be recorded as 'None'
         location: Option<String>,
+        //TODO implement location handling
 
         #[structopt(short, long)]
         /// Any tags to associate with the new entry
