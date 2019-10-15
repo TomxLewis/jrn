@@ -97,6 +97,15 @@ enum Jrn {
         /// Relevant git config options will be displayed separate from application config options
         list: bool,
     },
+
+    #[structopt(alias = "rm")]
+    /// Remove entries or tags
+    Remove {
+        /// The hash of the entry object to be removed
+        ///
+        /// if given the literal 'HEAD' will delete only the most recent entry
+        entry_hash: String
+    },
 }
 
 impl Jrn {
@@ -135,13 +144,9 @@ impl Jrn {
             Self::Config { .. } => {
                 //TODO implement config subcommand
             }
+            Self::Remove { .. } => {
+                //TODO implement remove subcommand
+            }
         }
     }
-}
-
-#[cfg(test)]
-mod test {
-
-    #[test]
-    fn new() {}
 }
