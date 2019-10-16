@@ -8,6 +8,33 @@ use std::process::Command;
 
 use super::*;
 
+static DELIMINATORS: [char; 5] = [',', '_', '-', '/', '\\',  ];
+
+trait Deliminated<T> {
+    fn deliminate(self) -> Vec<T>;
+}
+
+impl Deliminated<String> for String {
+    fn deliminate(self) -> Vec<String> {
+        let mut s = String::new();
+        let mut v = Vec::new();
+        let last_index = self.len() - 1;
+        for (i, char) in self.chars().into_iter().enumerate() {
+            if DELIMINATORS.contains(&char) && !s.is_empty() {
+                v.push(s);
+                s = String::new();
+            } else {
+                s.push(char);
+            }
+
+            if i == last_index && !s.is_empty() {
+                v.push(s);
+            }
+        }
+        v
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Settings {
@@ -104,27 +131,21 @@ impl Settings {
             .unwrap()
     }
 
-    pub fn get_tags(&self) -> Vec<&str> {
-        let mut result = Vec::new();
-        if let Some(config_tags) = self.map.get(&JrnSetting::ConfigLocalTags) {
-            //TODO document need for split char
-            let config_tags = config_tags.split(',');
-            for tag in config_tags {
-                if tag != "" {
-                    result.push(tag);
-                }
-            }
-        }
-        result
+    fn get_editor_args(&self) -> Vec<&str> {
+        //TODO split on all common deliminators
+        self.map
+            .get(&JrnSetting::EditorArgs).unwrap()
+            .split(' ')
+            .collect()
     }
 
-    /// launches the editor based on the settings in this config,
-    /// returns Err if this fails
-    pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
+    /// Attempts to launch the editor based on the settings in this config
+    /// This function panics if it fails
+    pub fn launch_editor(&self, path: Option<&Path>) {
         let mut args: Vec<String> = Vec::new();
 
         //push editor arguments
-        //TODO test
+        //TODO split on all common deliminators
         let editor_args = self.map.get(&JrnSetting::EditorArgs).unwrap().split(' ');
         for arg in editor_args {
             args.push(String::from(arg))
@@ -145,7 +166,6 @@ impl Settings {
 
         let mut child = cmd.spawn().map_err(|_| JrnError::EditorNotFound)?;
         child.wait()?;
-        Ok(())
     }
 
     /// convenience method for an empty settings object
@@ -158,24 +178,8 @@ impl Settings {
     /// merge an other into this,
     /// favoring the config settings in self if found in both
     fn merge(mut self, other: Settings) -> Self {
-        for (setting, mut value) in other.map {
-            match setting {
-                //if the setting is ConfigTags, merge
-                JrnSetting::ConfigLocalTags => {
-                    if !self.map.contains_key(&setting) {
-                        self.map.insert(setting, value);
-                    } else {
-                        //TODO dedupe tags
-                        let current = self.map.get(&setting).unwrap();
-                        value.push_str(&format!(",{}", current));
-                        self.map.insert(setting, value);
-                    }
-                }
-                //else if the setting already exists in self don't overwrite
-                _ => {
-                    self.map.entry(setting).or_insert(value);
-                }
-            }
+        for (setting, value) in other.map {
+            self.map.entry(setting).or_insert(value);
         }
         self
     }

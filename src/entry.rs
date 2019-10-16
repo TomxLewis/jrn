@@ -28,9 +28,10 @@ impl JrnEntry {
     ) -> Self {
         let creation_time = creation_time.unwrap_or_else(TimeStamp::now);
         let tags = tags.unwrap_or_default();
-        let location: Location = location
-            .map(Location::from)
-            .unwrap_or_default(); //TODO pull location from config
+
+        // Pulls the location from the config if not given
+        //
+        let location = Location::configure(location, config);
         let mut entry = JrnEntry {
             creation_time,
             location,
