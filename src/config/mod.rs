@@ -1,9 +1,6 @@
 mod ignore;
 mod settings;
 
-//imports
-use super::*;
-
 //exports
 pub use ignore::IgnorePatterns;
 pub use settings::Settings;

@@ -1,4 +1,3 @@
-struct Deliminator;
 
 pub trait Deliminated<T> {
     fn deliminate(self) -> Option<Vec<T>>;
@@ -6,7 +5,7 @@ pub trait Deliminated<T> {
 
 static DELIMINATORS: [char; 6] = [',', '_', '-', '/', '\\', ' '];
 
-trait IsDeliminator {
+pub trait IsDeliminator {
     fn is_deliminator(&self) -> bool;
 }
 
