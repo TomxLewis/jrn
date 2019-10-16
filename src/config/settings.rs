@@ -7,8 +7,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use super::*;
+use std::borrow::Borrow;
 
-static DELIMINATORS: [char; 5] = [',', '_', '-', '/', '\\',  ];
+static DELIMINATORS: [char; 6] = [',', '_', '-', '/', '\\', ' '];
 
 trait Deliminated<T> {
     fn deliminate(self) -> Vec<T>;
@@ -18,21 +19,20 @@ impl Deliminated<String> for String {
     fn deliminate(self) -> Vec<String> {
         let mut s = String::new();
         let mut v = Vec::new();
-        let last_index = self.len() - 1;
-        for (i, char) in self.chars().into_iter().enumerate() {
-            if DELIMINATORS.contains(&char) {
-                if !s.is_empty() {
-                    v.push(s);
-                    s = String::new();
-                }
+        for char in self.chars().into_iter() {
+            let borrow: &str = s.borrow();
+            if DELIMINATORS.contains(&char) && !borrow.is_empty() {
+                v.push(s.clone());
+                s = String::new();
             } else {
                 s.push(char);
             }
-
-            if i == last_index && !s.is_empty() {
-                v.push(s);
-            }
         }
+
+        if !s.is_empty() {
+            v.push(s);
+        }
+
         v
     }
 }
