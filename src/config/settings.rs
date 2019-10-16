@@ -164,8 +164,8 @@ impl Settings {
         let mut cmd = Command::new(&editor);
         cmd.args(args);
 
-        let mut child = cmd.spawn().map_err(|_| JrnError::EditorNotFound)?;
-        child.wait()?;
+        let mut child = cmd.spawn().unwrap();
+        child.wait().unwrap();
     }
 
     /// convenience method for an empty settings object
