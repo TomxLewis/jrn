@@ -5,37 +5,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-use super::*;
-use std::borrow::Borrow;
-
-static DELIMINATORS: [char; 6] = [',', '_', '-', '/', '\\', ' '];
-
-trait Deliminated<T> {
-    fn deliminate(self) -> Vec<T>;
-}
-
-impl Deliminated<String> for String {
-    fn deliminate(self) -> Vec<String> {
-        let mut s = String::new();
-        let mut v = Vec::new();
-        for char in self.chars().into_iter() {
-            let borrow: &str = s.borrow();
-            if DELIMINATORS.contains(&char) && !borrow.is_empty() {
-                v.push(s.clone());
-                s = String::new();
-            } else {
-                s.push(char);
-            }
-        }
-
-        if !s.is_empty() {
-            v.push(s);
-        }
-
-        v
-    }
-}
+use crate::*;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -50,7 +20,6 @@ pub enum JrnSetting {
     EditorArgs,
     TagStart,
     TagDeliminator,
-    ConfigLocalTags,
 }
 
 impl Default for Settings {
@@ -134,11 +103,10 @@ impl Settings {
     }
 
     fn get_editor_args(&self) -> Vec<&str> {
-        //TODO split on all common deliminators
         self.map
             .get(&JrnSetting::EditorArgs).unwrap()
-            .split(' ')
-            .collect()
+            .deliminate()
+            .unwrap()
     }
 
     /// Attempts to launch the editor based on the settings in this config
@@ -147,9 +115,8 @@ impl Settings {
         let mut args: Vec<String> = Vec::new();
 
         //push editor arguments
-        //TODO split on all common deliminators
-        let editor_args = self.map.get(&JrnSetting::EditorArgs).unwrap().split(' ');
-        for arg in editor_args {
+        //TODO test
+        for arg in self.get_editor_args() {
             args.push(String::from(arg))
         }
 
@@ -170,6 +137,10 @@ impl Settings {
         child.wait().unwrap();
     }
 
+    pub fn set(&mut self, arg: JrnSetting, s: &str) {
+        self.map.insert(arg, s.to_string());
+    }
+    
     /// convenience method for an empty settings object
     fn empty() -> Self {
         Settings {

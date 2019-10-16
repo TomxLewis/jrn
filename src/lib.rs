@@ -7,6 +7,7 @@ extern crate serde;
 mod config;
 mod entry;
 mod error;
+mod deliminated;
 mod location;
 mod repo;
 mod tag_container;
@@ -17,6 +18,7 @@ use entry::{JrnEntry, JrnEntryFilter};
 use location::Location;
 pub use tag_container::{CountAndTag, TagContainer};
 use time::TimeStamp;
+use deliminated::Deliminated;
 
 //exports
 pub use config::{IgnorePatterns, Settings};
