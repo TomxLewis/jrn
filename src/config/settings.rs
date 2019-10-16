@@ -141,7 +141,8 @@ impl Settings {
         self.map.insert(arg, s.to_string());
     }
     
-    /// convenience method for an empty settings object
+    // convenience method for an empty settings object
+    // in this case the method is different from Default impl
     fn empty() -> Self {
         Settings {
             map: BTreeMap::new(),
