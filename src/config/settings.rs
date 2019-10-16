@@ -20,9 +20,11 @@ impl Deliminated<String> for String {
         let mut v = Vec::new();
         let last_index = self.len() - 1;
         for (i, char) in self.chars().into_iter().enumerate() {
-            if DELIMINATORS.contains(&char) && !s.is_empty() {
-                v.push(s);
-                s = String::new();
+            if DELIMINATORS.contains(&char) {
+                if !s.is_empty() {
+                    v.push(s);
+                    s = String::new();
+                }
             } else {
                 s.push(char);
             }

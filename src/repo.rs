@@ -61,7 +61,7 @@ impl JrnRepo {
         }
 
         if !skip_edit {
-            self.config.launch_editor(Some(&path))?;
+            self.config.launch_editor(Some(&path));
         }
 
         self.entries.push(entry);
