@@ -23,11 +23,10 @@ impl JrnEntry {
     pub fn new(
         config: &Settings,
         creation_time: Option<TimeStamp>,
-        tags: Option<Vec<String>>,
+        tags: Vec<String>,
         location: Option<String>,
     ) -> Self {
         let creation_time = creation_time.unwrap_or_else(TimeStamp::now);
-        let tags = tags.unwrap_or_default();
 
         // Pulls the location from the config if not given
         //
@@ -39,6 +38,7 @@ impl JrnEntry {
             file_path: PathBuf::new(),
         };
         entry.build_file_path(config);
+        dbg!(&entry.file_path);
         entry
     }
 

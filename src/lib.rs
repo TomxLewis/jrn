@@ -3,6 +3,7 @@ extern crate dirs;
 extern crate log;
 extern crate ron;
 extern crate serde;
+extern crate simplelog;
 
 mod config;
 mod entry;

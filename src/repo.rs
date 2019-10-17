@@ -44,7 +44,7 @@ impl JrnRepo {
     /// returning Err if failing to create the entry
     pub fn create_entry(
         &mut self,
-        tags: Option<Vec<String>>,
+        tags: Vec<String>,
         content: Option<String>,
         skip_edit: bool,
     ) -> Result<(), JrnError> {

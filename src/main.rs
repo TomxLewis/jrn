@@ -4,11 +4,18 @@ use clap::AppSettings;
 use structopt::StructOpt;
 
 use jrn::*;
+use simplelog::SimpleLogger;
+use log::LevelFilter;
 
 fn main() {
+    SimpleLogger::init(LevelFilter::Trace, simplelog::Config::default()).unwrap();
+
     let cfg = Settings::find_or_default();
+    log::info!("cfg successfully loaded");
     let ignore = IgnorePatterns::find_or_default();
+    log::info!("ignore successfully loaded");
     let repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
+    log::info!("repo successfully loaded");
     Jrn::build_app().match_on_subcommand(repo);
 }
 
@@ -37,9 +44,8 @@ enum Jrn {
         location: Option<String>,
         //TODO implement location handling
 
-        #[structopt(short, long)]
         /// Any tags to associate with the new entry
-        tags: Option<Vec<String>>,
+        tags: Vec<String>,
     },
 
     /// List entries

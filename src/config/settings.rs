@@ -115,6 +115,7 @@ impl Settings {
         let mut args: Vec<String> = Vec::new();
 
         //push editor arguments
+        dbg!(self.get_editor_args());
         //TODO test
         for arg in self.get_editor_args() {
             args.push(String::from(arg))
@@ -130,6 +131,9 @@ impl Settings {
 
         //build and send command to os
         let editor = self.map.get(&JrnSetting::Editor).unwrap();
+
+        log::info!("Launching editor \"{}\" with args {:?}", &editor, &args);
+
         let mut cmd = Command::new(&editor);
         cmd.args(args);
 
