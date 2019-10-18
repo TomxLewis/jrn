@@ -25,12 +25,13 @@ impl <'a> Deliminated<&'a str> for &'a str {
             }
         }
 
+        if indices.is_empty() {
+            return Some(vec!(self))
+        }
+
         let mut v = Vec::new();
         let mut prev_i = 0;
         for i in indices {
-            log::trace!("loop i: {}, prev_i: {}", i, prev_i);
-            dbg!(prev_i);
-            dbg!(i);
             if prev_i == 0 {
                 v.push(&self[0..i])
             } else {
@@ -63,22 +64,43 @@ mod test {
 
     #[test]
     fn deliminate_space() {
-        let s = "one two three";
-        let unwrap = s.deliminate().unwrap();
-        assert_eq!(unwrap, vec!("one", "two", "three"));
+        let s = "+one two three";
+        let d = s.deliminate().unwrap();
+        assert_eq!(d, vec!("+one", "two", "three"));
     }
 
     #[test]
     fn leading_deliminator() {
         let s = " one two three";
-        let unwrap = s.deliminate().unwrap();
-        assert_eq!(unwrap, vec!("one", "two", "three"));
+        let d = s.deliminate().unwrap();
+        assert_eq!(d, vec!("one", "two", "three"));
     }
 
     #[test]
     fn single_no_delim() {
-        let s = "+star";
-        let unwrap = s.deliminate().unwrap();
-        assert_eq!(unwrap, vec!("+star"));
+        let s = "+one";
+        let d = s.deliminate().unwrap();
+        assert_eq!(d, vec!("+one"));
+    }
+
+    #[test]
+    fn single_leading_delim() {
+        let s = ",one";
+        let d = s.deliminate().unwrap();
+        assert_eq!(d, vec!("one"));
+    }
+
+    #[test]
+    fn single_value_multi_delim() {
+        let s = ",one,";
+        let d = s.deliminate().unwrap();
+        assert_eq!(d, vec!("one"));
+    }
+
+    #[test]
+    fn multi_value_multi_delim() {
+        let s = "one,,two, three";
+        let d = s.deliminate().unwrap();
+        assert_eq!(d, vec!("one", "two", "three"));
     }
 }
