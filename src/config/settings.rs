@@ -112,26 +112,20 @@ impl Settings {
     /// Attempts to launch the editor based on the settings in this config
     pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
         let mut args: Vec<String> = Vec::new();
-
-        //push editor arguments
-        dbg!(self.get_editor_args());
-        //TODO test
         for arg in self.get_editor_args() {
             args.push(String::from(arg))
         }
 
-        //push path if given
+        //push path if given and valid
         if let Some(path) = path {
-            //don't attempt if path contains invalid unicode
             if let Some(path_str) = path.to_str() {
                 args.push(String::from(path_str));
             }
         }
 
-        //build and send command to os
+        //spawn editor
         let editor = self.map.get(&JrnSetting::Editor).unwrap();
-
-        log::info!("Attempting to launch editor \"{}\" with args {:?}", &editor, &args);
+        log::info!("Launching editor \"{}\" with args {:?}", &editor, &args);
 
         //TODO propagate err
         let mut cmd = Command::new(&editor);
