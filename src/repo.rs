@@ -41,31 +41,25 @@ impl JrnRepo {
 
     /// Tries to create a new entry in this repo
     ///
-    /// returning Err if failing to create the entry
+    /// If this function fails to open the editor it returns BadEditor and does nothing
     pub fn create_entry(
         &mut self,
         tags: Vec<String>,
-        content: Option<String>,
+        location: Option<String>,
         skip_edit: bool,
     ) -> Result<(), JrnError> {
-        let entry = JrnEntry::new(&self.config, None, tags, None);
+        let entry = JrnEntry::new(&self.config, None, tags, location);
         let path = &entry.file_path;
 
-        let mut file = OpenOptions::new().write(true).create(true).open(path)?;
-
-        //create the file
-        if let Some(content) = content {
-            file.write_all(content.as_bytes())?;
+        if !skip_edit {
+            self.config.launch_editor(Some(&path))?;
         } else {
+            let mut file = OpenOptions::new().write(true).create(true).open(path)?;
+            //TODO test if line is needed
             file.write_all(&[])?;
         }
 
-        if !skip_edit {
-            self.config.launch_editor(Some(&path));
-        }
-
         self.entries.push(entry);
-
         Ok(())
     }
 

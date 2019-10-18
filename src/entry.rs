@@ -29,7 +29,6 @@ impl JrnEntry {
         let creation_time = creation_time.unwrap_or_else(TimeStamp::now);
 
         // Pulls the location from the config if not given
-        //
         let location = Location::configure(location, config);
         let mut entry = JrnEntry {
             creation_time,
@@ -38,7 +37,6 @@ impl JrnEntry {
             file_path: PathBuf::new(),
         };
         entry.build_file_path(config);
-        dbg!(&entry.file_path);
         entry
     }
 

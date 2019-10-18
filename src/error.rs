@@ -2,10 +2,9 @@ type BoxedError = Box<dyn std::error::Error>;
 
 #[derive(Debug)]
 pub enum JrnError {
-    EditorNotFound,
+    BadEditorCommand { editor: String, args: Vec<String> },
     IO(std::io::Error),
     Serialization(BoxedError),
-    InvalidUnicode,
     InvalidRegex,
     ParseIntError(BoxedError),
 }

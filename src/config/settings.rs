@@ -110,8 +110,7 @@ impl Settings {
     }
 
     /// Attempts to launch the editor based on the settings in this config
-    /// This function panics if it fails
-    pub fn launch_editor(&self, path: Option<&Path>) {
+    pub fn launch_editor(&self, path: Option<&Path>) -> Result<(), JrnError> {
         let mut args: Vec<String> = Vec::new();
 
         //push editor arguments
@@ -132,13 +131,14 @@ impl Settings {
         //build and send command to os
         let editor = self.map.get(&JrnSetting::Editor).unwrap();
 
-        log::info!("Launching editor \"{}\" with args {:?}", &editor, &args);
+        log::info!("Attempting to launch editor \"{}\" with args {:?}", &editor, &args);
 
+        //TODO propagate err
         let mut cmd = Command::new(&editor);
         cmd.args(args);
-
         let mut child = cmd.spawn().unwrap();
         child.wait().unwrap();
+        Ok(())
     }
 
     pub fn set(&mut self, arg: JrnSetting, s: &str) {
