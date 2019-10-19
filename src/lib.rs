@@ -22,6 +22,6 @@ use time::TimeStamp;
 use deliminate::Deliminated;
 
 //exports
-pub use config::{IgnorePatterns, Settings};
+pub use config::{Config, IgnorePatterns, Settings};
 pub use error::JrnError;
 pub use repo::JrnRepo;
