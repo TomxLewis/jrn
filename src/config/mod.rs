@@ -5,6 +5,9 @@ mod settings;
 pub use ignore::IgnorePatterns;
 pub use settings::Settings;
 use std::fmt::{self, Formatter};
+use std::path::{Path, PathBuf};
+use std::fs::File;
+use std::io::Read;
 
 //statics
 static JRN_CONFIG_FILE_NAME: &str = ".jrnconfig";
@@ -18,18 +21,46 @@ auth.token=
 auth.method=
 ";
 
-impl Default for Config {
-    fn default() -> Self {
-        DEFAULT_CFG.parse::<NaiveConfig>().ok().unwrap().into_scoped(ConfigScope::Default)
-    }
-}
-
 #[derive(Debug)]
 /// Type that holds onto all configuration values for the application.
 /// The associated methods of this type will always return the value in the closest scope
 pub struct Config {
     /// Vec which acts as a set on Scope/Key Pairs
     inner: Vec<ScopedConfigEntry>
+}
+
+impl Config {
+    pub fn find_or_default() -> Self {
+        //TODO implement
+        unimplemented!()
+    }
+
+    pub fn get_editor(&self) -> &str {
+        // safe to unwrap as default is given
+        &self.get_value(ConfigKey::CoreEditor).as_ref().unwrap()
+    }
+
+    fn get_value(&self, key: ConfigKey) -> &ConfigValue {
+        let mut result: &ConfigValue = &None;
+        let mut scope: &ConfigScope = &ConfigScope::Default;
+        for e in self.inner.iter().filter(|e| e.key == key) {
+            if &e.scope >= scope {
+                scope = &e.scope;
+                result = &e.value;
+            }
+        }
+        result
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        DEFAULT_CFG
+            .parse::<NaiveConfig>()
+            .ok()
+            .unwrap()
+            .into_scoped(ConfigScope::Default)
+    }
 }
 
 #[allow(dead_code)]
@@ -43,7 +74,34 @@ pub enum ConfigScope {
     Local,
 }
 
-#[derive(Debug)]
+impl ConfigScope {
+    pub fn read(&self) -> Option<Config> {
+        if let Some(path) = self.get_path() {
+            if let Ok(mut file) = File::open(&path) {
+                let mut content = String::new();
+                file.read_to_string(&mut content);
+                // TODO test parsing the NaiveConfig can not fail
+                let cfg = content.parse::<NaiveConfig>().ok().unwrap();
+                return Some(cfg.into_scoped(self.clone()))
+            } else {
+                log::warn!("Unable to read from path: {}", path.display())
+            }
+        }
+        None
+    }
+
+    fn get_path(&self) -> Option<PathBuf> {
+        use ConfigScope::*;
+        match &self {
+            Default => None,
+            System => None, //TODO check env
+            User => dirs::home_dir().map(|mut pb| { pb.push(Path::new(JRN_CONFIG_FILE_NAME)); pb }),
+            Local => std::env::current_dir().ok(),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ConfigKey {
     CoreEditor,
     CoreViewer,
@@ -128,14 +186,6 @@ impl std::str::FromStr for NaiveConfigEntry {
     }
 }
 
-impl From<Vec<NaiveConfigEntry>> for NaiveConfig {
-    fn from(inner: Vec<NaiveConfigEntry>) -> Self {
-        NaiveConfig {
-            inner
-        }
-    }
-}
-
 impl std::str::FromStr for NaiveConfig {
     type Err = ConfigParseError;
 
@@ -146,6 +196,14 @@ impl std::str::FromStr for NaiveConfig {
             .collect::<Vec<NaiveConfigEntry>>()
             .into()
         )
+    }
+}
+
+impl From<Vec<NaiveConfigEntry>> for NaiveConfig {
+    fn from(inner: Vec<NaiveConfigEntry>) -> Self {
+        NaiveConfig {
+            inner
+        }
     }
 }
 
