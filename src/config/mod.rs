@@ -10,14 +10,6 @@ use std::io::{self, Read};
 
 static JRN_CONFIG_FILE_NAME: &str = ".jrnconfig";
 static JRN_IGNORE_FILE_NAME: &str = ".jrnignore";
-static DEFAULT_CFG: &str = r"
-core.editor=vim
-core.viewer=less
-core.ignore.file=.gitignore
-core.user=
-auth.token=
-auth.method=
-";
 
 #[derive(Debug)]
 /// Type that holds onto all configuration values for the application.
@@ -88,10 +80,18 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
-        DEFAULT_CFG
-            .parse::<NaiveConfig>()
-            .ok()
-            .unwrap()
+        use ConfigKey::*;
+        NaiveConfig {
+            inner: vec![
+                NaiveConfigEntry::new(CoreEditor, Some("vim")),
+                NaiveConfigEntry::new(CoreViewer, Some("less")),
+                NaiveConfigEntry::new(CoreIgnoreFile, Some(".gitignore")),
+                NaiveConfigEntry::new(CoreUser, None),
+                NaiveConfigEntry::new(CoreEmail, None),
+                NaiveConfigEntry::new(AuthToken, None),
+                NaiveConfigEntry::new(AuthMethod, None),
+            ]
+        }
             .into_scoped(ConfigScope::Default)
     }
 }
@@ -166,9 +166,19 @@ struct NaiveConfig {
     inner: Vec<NaiveConfigEntry>
 }
 
+#[derive(PartialEq)]
 struct NaiveConfigEntry {
     key: ConfigKey,
     value: ConfigValue,
+}
+
+impl NaiveConfigEntry {
+    fn new(key: ConfigKey, value: Option<&str>) -> Self {
+        NaiveConfigEntry {
+            key,
+            value: value.map(String::from),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -199,6 +209,7 @@ impl std::str::FromStr for ConfigKey {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use ConfigKey::*;
+        let s = s.trim();
         match s {
             "core.editor" => Ok(CoreEditor),
             "core.viewer" => Ok(CoreViewer),
@@ -219,7 +230,16 @@ impl std::str::FromStr for NaiveConfigEntry {
         let mut split = s.split('=');
         let key_str = split.next().ok_or(ConfigParseError::NoDeliminator)?;
         let key: ConfigKey = key_str.parse()?;
-        let value: ConfigValue = if let Some(s) = split.next() { if s == "" { None } else { Some(s.to_string()) }} else { None };
+        let value: ConfigValue = if let Some(s) = split.next() {
+            let s = s.trim();
+            if s == "" {
+                None
+            } else {
+                Some(s.to_string())
+            }
+        } else {
+            None
+        };
         Ok(NaiveConfigEntry{
             key,
             value,
