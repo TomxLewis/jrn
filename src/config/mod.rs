@@ -300,4 +300,17 @@ mod test {
         assert!(ConfigScope::User > ConfigScope::System);
         assert!(ConfigScope::System > ConfigScope::Default);
     }
+
+    #[test]
+    fn parse_str() {
+        let s = r"
+        core.editor=vim
+        fake.entry=nonsense
+        ";
+
+        let c = s.parse::<NaiveConfig>().unwrap();
+        let expected = NaiveConfigEntry::new(ConfigKey::CoreEditor, Some("vim"));
+        assert_eq!(c.inner.len(), 1);
+        assert!(c.inner.contains(&expected));
+    }
 }
