@@ -1,15 +1,13 @@
 mod ignore;
 mod settings;
 
-//exports
 pub use ignore::IgnorePatterns;
 pub use settings::Settings;
 use std::fmt::{self, Formatter};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read};
 
-//statics
 static JRN_CONFIG_FILE_NAME: &str = ".jrnconfig";
 static JRN_IGNORE_FILE_NAME: &str = ".jrnignore";
 static DEFAULT_CFG: &str = r"
@@ -30,13 +28,39 @@ pub struct Config {
 }
 
 impl Config {
+    /// Loads any configuration from the env
+    ///
+    /// Will check the following locations
+    /// in order of global -> local
+    ///     ~/.config/.jrnconfig
+    ///     ~/.jrnconfig
+    ///     ./.jrnconfig
+    ///
+    /// More local settings will overwrite global settings
+    /// For Example vim would be used as the editor in the following case
+    ///     ~/.jrnconfig
+    ///         editor=ed
+    ///     ./.jrnconfig
+    ///         editor=vim
+    ///
+    /// If no value is set for a config option the default is used
+    ///
+    /// This function will not fail, but rather log warnings
+    /// these can be used by the applications logger
     pub fn find_or_default() -> Self {
-        //TODO implement
-        unimplemented!()
+        let mut result = Config { inner: vec![] };
+        use ConfigScope::*;
+        static SCOPES: [ConfigScope; 4] = [Default, System, User, Local];
+        for scope in SCOPES.iter() {
+            if let Some(cfg) = scope.get_config() {
+                result = result.merge(cfg);
+            }
+        }
+        result
     }
 
     pub fn get_editor(&self) -> &str {
-        // safe to unwrap as default is given
+        // safe to unwrap as default is always created
         &self.get_value(ConfigKey::CoreEditor).as_ref().unwrap()
     }
 
@@ -51,6 +75,15 @@ impl Config {
         }
         result
     }
+
+    fn merge(self, other: Self) -> Self {
+        let mut inner = self.inner;
+        let mut other = other.inner;
+        inner.append(&mut other);
+        Config {
+            inner
+        }
+    }
 }
 
 impl Default for Config {
@@ -63,7 +96,6 @@ impl Default for Config {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 /// Exists to order all configuration values
 /// from farthest scope < nearest scope
@@ -75,29 +107,41 @@ pub enum ConfigScope {
 }
 
 impl ConfigScope {
-    pub fn read(&self) -> Option<Config> {
-        if let Some(path) = self.get_path() {
-            if let Ok(mut file) = File::open(&path) {
-                let mut content = String::new();
-                file.read_to_string(&mut content);
-                // TODO test parsing the NaiveConfig can not fail
-                let cfg = content.parse::<NaiveConfig>().ok().unwrap();
-                return Some(cfg.into_scoped(self.clone()))
-            } else {
-                log::warn!("Unable to read from path: {}", path.display())
-            }
+    pub fn get_config(self) -> Option<Config> {
+        match self {
+            ConfigScope::Default => Some(Config::default()),
+            _ => self.read_optionally()
         }
-        None
     }
 
-    fn get_path(&self) -> Option<PathBuf> {
-        use ConfigScope::*;
-        match &self {
-            Default => None,
-            System => None, //TODO check env
-            User => dirs::home_dir().map(|mut pb| { pb.push(Path::new(JRN_CONFIG_FILE_NAME)); pb }),
-            Local => std::env::current_dir().ok(),
+    fn read_optionally(self) -> Option<Config> {
+        match self.read() {
+            Ok(c) => Some(c),
+            Err(e) => { log::warn!("Error: {}\nCan not read {:?}", e, &self); None }
         }
+    }
+
+    fn read(self) -> Result<Config, io::Error> {
+        if let Some(path) = self.get_path() {
+            let mut file = File::open(&path)?;
+            let mut content = String::new();
+            file.read_to_string(&mut content)?;
+            let cfg = content.parse::<NaiveConfig>().ok().unwrap(); //TODO test if parsing can fail
+            Ok(cfg.into_scoped(self))
+        } else {
+            unreachable!();
+        }
+    }
+
+    fn get_path(self) -> Option<PathBuf> {
+        use ConfigScope::*;
+        let path_buf = match self {
+            Default => None,
+            System => None, //Define system config path
+            User => dirs::home_dir(),
+            Local => std::env::current_dir().ok(),
+        };
+        path_buf.map(|mut pb| { pb.push(JRN_CONFIG_FILE_NAME); pb })
     }
 }
 
