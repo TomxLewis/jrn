@@ -117,27 +117,24 @@ impl ConfigScope {
     fn read_optionally(self) -> Option<Config> {
         match self.read() {
             Ok(c) => Some(c),
-            Err(e) => { log::warn!("Error: {}\nCan not read {:?}", e, &self); None }
+            Err(e) => { log::trace!("{} Can not read {:?} config, will skip.", e, &self); None }
         }
     }
 
     fn read(self) -> Result<Config, io::Error> {
-        if let Some(path) = self.get_path() {
-            let mut file = File::open(&path)?;
-            let mut content = String::new();
-            file.read_to_string(&mut content)?;
-            let cfg = content.parse::<NaiveConfig>().ok().unwrap(); //TODO test if parsing can fail
-            Ok(cfg.into_scoped(self))
-        } else {
-            unreachable!();
-        }
+        let path = self.get_path().unwrap();
+        let mut file = File::open(&path)?;
+        let mut content = String::new();
+        file.read_to_string(&mut content)?;
+        let cfg = content.parse::<NaiveConfig>().ok().unwrap(); //TODO test if parsing can fail
+        Ok(cfg.into_scoped(self))
     }
 
     fn get_path(self) -> Option<PathBuf> {
         use ConfigScope::*;
         let path_buf = match self {
             Default => None,
-            System => None, //Define system config path
+            System => dirs::config_dir(), //TODO define real system config path
             User => dirs::home_dir(),
             Local => std::env::current_dir().ok(),
         };
