@@ -24,9 +24,9 @@ impl From<String> for Location {
 }
 
 impl Location {
-    /// First, return if given via commandline, return that
-    /// Second, return if available in the configuration, return that
-    /// Third, return the previous entries location
+    /// First, if given via commandline return that
+    /// Second, return the location found in the repositories configuration if available
+    /// Third, return the repositories latest location if one exists
     /// Lastly use [Default]
     pub fn configured_from(arg: Option<String>, repo: &JrnRepo) -> Self {
         if let Some(arg) = arg {
