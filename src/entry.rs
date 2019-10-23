@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use super::{JrnError, Location, Settings, TimeStamp};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use crate::JrnRepo;
 
 /// the in memory representation of a jrn entry
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
@@ -21,22 +22,22 @@ pub struct JrnEntry {
 impl JrnEntry {
     /// Creates and writes a new entry
     pub fn new(
-        config: &Settings,
+        for_repo: &JrnRepo,
         creation_time: Option<TimeStamp>,
         tags: Vec<String>,
-        location: Option<String>,
+        loc_arg: Option<String>,
     ) -> Self {
         let creation_time = creation_time.unwrap_or_else(TimeStamp::now);
 
         // Pulls the location from the config if not given
-        let location = Location::configure(location, config);
+        let location = Location::configured_from(loc_arg, for_repo);
         let mut entry = JrnEntry {
             creation_time,
             location,
             tags,
             file_path: PathBuf::new(),
         };
-        entry.build_file_path(config);
+        entry.build_file_path(for_repo);
         entry
     }
 

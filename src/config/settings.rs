@@ -20,6 +20,7 @@ pub enum JrnSetting {
     EditorArgs,
     TagStart,
     TagDeliminator,
+    Location,
 }
 
 impl Default for Settings {
@@ -107,6 +108,13 @@ impl Settings {
             .get(&JrnSetting::EditorArgs).unwrap()
             .deliminate()
             .unwrap()
+    }
+
+    pub fn get_location(&self) -> Option<Location> {
+        self.map
+            .get(&JrnSetting::Location)
+            .cloned()
+            .map(|s| s.into())
     }
 
     /// Attempts to launch the editor based on the settings in this config

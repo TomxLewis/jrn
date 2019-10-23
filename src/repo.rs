@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use super::*;
+use std::ops::Deref;
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
@@ -35,20 +36,17 @@ impl JrnRepo {
         let current_dir: PathBuf =
             std::env::current_dir().expect("jrn needs access to the current working directory");
         repo.collect_entries(&current_dir);
-        repo.entries.sort();
         Ok(repo)
     }
 
     /// Tries to create a new entry in this repo
-    ///
-    /// If this function fails to open the editor it returns BadEditor and does nothing
     pub fn create_entry(
         &mut self,
         tags: Vec<String>,
         location: Option<String>,
         skip_edit: bool,
     ) -> Result<(), JrnError> {
-        let entry = JrnEntry::new(&self.config, None, tags, location);
+        let entry = JrnEntry::new(&self, None, tags, location);
         let path = &entry.file_path;
 
         if !skip_edit {
@@ -61,6 +59,19 @@ impl JrnRepo {
 
         self.entries.push(entry);
         Ok(())
+    }
+
+    /// Returns the location to be used by new entries if a location arg was not passed
+    /// First returns a location given by the configuration if available
+    /// Second returns the previous entries location
+    pub fn get_location(&self) -> Option<Location> {
+        if let Some(loc) = self.config.get_location() {
+            Some(loc)
+        } else if let Some(entry) = self.entries.last() {
+            Some(entry.location.clone())
+        } else {
+            None
+        }
     }
 
     /// display entries to std::out
@@ -111,26 +122,37 @@ impl JrnRepo {
         }
     }
 
-    /// Helper method to recursively search cd for entries
-    /// after calling this method, must preform sorting on entries
+    /// Helper method to walk the filesystem and add entries
     fn collect_entries(&mut self, path: &Path) {
-        if self.ignore.matches(path) {
-            return;
-        }
+        fn collect(repo: &mut JrnRepo, path: &Path) {
+            if repo.ignore.matches(path) {
+                return;
+            }
 
-        if path.is_dir() {
-            if let Ok(dir) = fs::read_dir(path) {
-                for f in dir {
-                    if let Ok(file) = f {
-                        self.collect_entries(&file.path());
+            if path.is_dir() {
+                if let Ok(dir) = fs::read_dir(path) {
+                    for f in dir {
+                        if let Ok(file) = f {
+                            collect(repo, &file.path());
+                        }
                     }
                 }
+            } else if let Some(entry) = JrnEntry::read_entry(path, &repo.config) {
+                for tag in &entry.tags {
+                    repo.tags.insert(tag);
+                }
+                repo.entries.push(entry);
             }
-        } else if let Some(entry) = JrnEntry::read_entry(path, &self.config) {
-            for tag in &entry.tags {
-                self.tags.insert(tag);
-            }
-            self.entries.push(entry);
         }
+        collect(self, path);
+        self.entries.sort();
+    }
+}
+
+impl Deref for JrnRepo {
+    type Target = Settings;
+
+    fn deref(&self) -> &Self::Target {
+        &self.config
     }
 }

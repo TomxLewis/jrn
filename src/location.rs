@@ -1,5 +1,5 @@
 use std::fmt::{self, Display, Formatter};
-use crate::Settings;
+use crate::JrnRepo;
 
 #[derive(Debug, Eq, PartialOrd, PartialEq, Ord, Hash)]
 pub struct Location(String);
@@ -24,15 +24,23 @@ impl From<String> for Location {
 }
 
 impl Location {
-    /// TODO-BLOCK
-    /// First, if given via commandline, return that
-    /// Second, if available in the configuration, return that
-    /// Third, if the previous entry had a location, use that
-    /// If first entry use [Default]
-    pub fn configure(arg: Option<String>, _cfg: &Settings) -> Self {
+    /// First, return if given via commandline, return that
+    /// Second, return if available in the configuration, return that
+    /// Third, return the previous entries location
+    /// Lastly use [Default]
+    pub fn configured_from(arg: Option<String>, repo: &JrnRepo) -> Self {
         if let Some(arg) = arg {
-            return Location(arg)
+            Location(arg)
+        } else if let Some(loc) = repo.get_location() {
+            loc
+        } else {
+            Location::default()
         }
-        Location(String::from("None"))
+    }
+}
+
+impl Clone for Location {
+    fn clone(&self) -> Self {
+        Location(self.0.clone())
     }
 }
