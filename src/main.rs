@@ -113,7 +113,7 @@ enum Jrn {
         /// The hash of the entry object to be removed
         ///
         /// if given the literal 'HEAD' will delete only the most recent entry
-        entry_hash: String
+        entry_hash: Option<String>
     },
 }
 
@@ -153,8 +153,20 @@ impl Jrn {
             Self::Config { .. } => {
                 //TODO implement config subcommand
             }
-            Self::Remove { .. } => {
-                //TODO implement remove subcommand
+            Self::Remove { entry_hash } => {
+                match entry_hash {
+                    Some(s) => { 
+                        if &s == "HEAD" {
+                            repo.remove_latest();
+                        } else {
+                            log::info!("TODO impl remove hash");
+                            log::info!("Found hash {}", &s);
+                        }
+                    },
+                    None => { 
+                        log::info!("TODO display jrn-remove help");
+                    }
+                }
             }
         }
     }

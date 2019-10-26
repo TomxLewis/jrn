@@ -1,8 +1,8 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::fmt::{self, Display, Formatter};
-use std::fs::File;
-use std::io::Read;
+use std::fs::{self, File};
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use super::{JrnError, Location, Settings, TimeStamp};
@@ -106,6 +106,11 @@ impl JrnEntry {
         hasher.finish()
     }
 
+    pub fn delete(&self) -> io::Result<()> {
+        fs::remove_file(&self.file_path)?;
+        Ok(())
+    }
+
     fn build_file_path(&mut self, config: &Settings) {
         let mut file_name = String::new();
         let tag_start = config.get_tag_start();
@@ -179,4 +184,21 @@ impl JrnEntryFilter {
         };
         Ok(filter)
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn error_on_remove_nonexistent_entry() {
+        let entry = JrnEntry {
+            creation_time: TimeStamp::now(),
+            location: Location::default(),
+            tags: vec!(),
+            file_path: PathBuf::from("/test"),
+        };
+        entry.delete().expect_err("Found nonexistent entry");
+    }
+
 }
