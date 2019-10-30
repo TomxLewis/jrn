@@ -20,13 +20,13 @@ fn main() {
 }
 
 #[derive(Debug, StructOpt)]
-/// the stupid journaling system
+/// the stupid journal system
 ///
-/// command line journaling that integrates with git for version control
+/// command line journal that integrates with git for version control
 enum Jrn {
     /// Craft a new entry
     ///
-    /// The default behavior of this subcommand is to open the JRN_EDITOR with a blank entry.
+    /// Open the JRN_EDITOR with a blank entry.
     /// If an entry already exists at the current time and location it will be opened.
     New {
         #[structopt(short = "q", long = "quick")]
@@ -36,9 +36,8 @@ enum Jrn {
         #[structopt(short, long, env = "JRN_LOCATION")]
         /// Location the new entry was created
         ///
-        /// The location can be pulled from the command line, the environment or the configuration
-        /// A locally given location e.g. from the command line will override the environment
-        /// or configuration set locations.
+        /// The location can be pulled from the command line, or the environment
+        /// The command line will override the environment configs
         ///
         /// If no location is found location will be recorded as 'None'
         location: Option<String>,
@@ -71,7 +70,7 @@ enum Jrn {
 
     /// Modifies tags in the working jrn repository
     ///
-    /// TODO specify tags subcommand
+    /// TODO specify tags command
     Tags {
         #[structopt(default_value = ".*")]
         /// Filter to match tags against
@@ -96,9 +95,9 @@ enum Jrn {
     /// Alters or inquires the working configuration
     ///
     /// The configuration is pulled from all available git configurations
-    /// and any system or local .jrnconfig files
+    /// and any yet to be defined configuration
     ///
-    /// TODO specify config subcommand
+    /// TODO impl config command
     Config {
         #[structopt(short, long)]
         /// Lists the mapping of all relevant configuration options to their values
