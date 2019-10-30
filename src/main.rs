@@ -8,14 +8,14 @@ use simplelog::SimpleLogger;
 use log::LevelFilter;
 
 fn main() {
-    SimpleLogger::init(LevelFilter::Trace, simplelog::Config::default()).unwrap();
+    SimpleLogger::init(LevelFilter::Info, simplelog::Config::default()).unwrap();
 
     let cfg = Settings::find_or_default();
-    log::info!("cfg successfully loaded");
+    log::trace!("cfg successfully loaded");
     let ignore = IgnorePatterns::find_or_default();
-    log::info!("ignore successfully loaded");
+    log::trace!("ignore successfully loaded");
     let repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
-    log::info!("repo successfully loaded");
+    log::trace!("repo successfully loaded");
     Jrn::build_app().match_on_subcommand(repo);
 }
 
@@ -112,7 +112,7 @@ enum Jrn {
         /// The hash of the entry object to be removed
         ///
         /// if given the literal 'HEAD' will delete only the most recent entry
-        entry_hash: String
+        entry_hash: Option<String>
     },
 }
 
@@ -152,8 +152,20 @@ impl Jrn {
             Self::Config { .. } => {
                 //TODO implement config subcommand
             }
-            Self::Remove { .. } => {
-                //TODO implement remove subcommand
+            Self::Remove { entry_hash } => {
+                match entry_hash {
+                    Some(s) => { 
+                        if &s == "HEAD" {
+                            repo.remove_latest();
+                        } else {
+                            log::info!("TODO impl remove hash");
+                            log::info!("Found hash {}", &s);
+                        }
+                    },
+                    None => { 
+                        log::info!("TODO display jrn-remove help");
+                    }
+                }
             }
         }
     }

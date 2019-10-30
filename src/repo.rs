@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use super::*;
@@ -120,6 +120,22 @@ impl JrnRepo {
                 log::error!("{}", e);
             }
         }
+    }
+
+    /// Removes the newest entry
+    pub fn remove_latest(&mut self) -> io::Result<()> {
+        if let Some(removed) = self.entries.pop() {
+            for tag in &removed.tags {
+                self.remove_tag(tag);
+            }
+            removed.delete()?;
+        }
+        Ok(())
+    }
+
+    fn remove_tag(&mut self, tag: &str) {
+        //TODO implement
+        println!("removing tag: {}", tag);
     }
 
     /// Helper method to walk the filesystem and add entries
