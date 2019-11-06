@@ -5,3 +5,5 @@ Cargo.toml
 jrn.iml
 jrn.ipr
 jrn.iws
+cmake-build-debug
+.idea

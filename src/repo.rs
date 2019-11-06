@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::env;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -8,6 +9,7 @@ use std::ops::Deref;
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
+    pub root_path: PathBuf,
     config: Settings,
     ignore: IgnorePatterns,
     /// entries sorted by creation time
@@ -27,15 +29,17 @@ impl JrnRepo {
     /// returning Err if unable to write new entries
     /// will not return Err if unable to read files in dir
     pub fn init(config: Settings, ignore: IgnorePatterns) -> Result<Self, JrnError> {
+        let root_path: PathBuf = env::current_dir()
+            .expect("jrn needs access to the repository root");
+
         let mut repo = JrnRepo {
+            root_path,
             config,
             ignore,
             entries: Vec::new(),
             tags: TagContainer::new(),
         };
-        let current_dir: PathBuf =
-            std::env::current_dir().expect("jrn needs access to the current working directory");
-        repo.collect_entries(&current_dir);
+        repo.collect_entries();
         Ok(repo)
     }
 
@@ -139,7 +143,8 @@ impl JrnRepo {
     }
 
     /// Helper method to walk the filesystem and add entries
-    fn collect_entries(&mut self, path: &Path) {
+    fn collect_entries(&mut self) {
+        let path = self.root_path.clone();
         fn collect(repo: &mut JrnRepo, path: &Path) {
             if repo.ignore.matches(path) {
                 return;
@@ -160,7 +165,7 @@ impl JrnRepo {
                 repo.entries.push(entry);
             }
         }
-        collect(self, path);
+        collect(self, &path);
         self.entries.sort();
     }
 }

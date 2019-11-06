@@ -11,12 +11,16 @@ fn main() {
     SimpleLogger::init(LevelFilter::Info, simplelog::Config::default()).unwrap();
 
     let cfg = Settings::find_or_default();
-    log::trace!("cfg successfully loaded");
+    log::trace!("configuration successfully loaded");
+
     let ignore = IgnorePatterns::find_or_default();
-    log::trace!("ignore successfully loaded");
+    log::trace!("ignored patterns successfully loaded");
+
     let repo = JrnRepo::init(cfg, ignore).expect("Failure init repo");
-    log::trace!("repo successfully loaded");
-    Jrn::build_app().match_on_subcommand(repo);
+    log::trace!("Opening repository at {:?}", &repo.root_path);
+
+    Jrn::build_app()
+        .start_loop(repo);
 }
 
 #[derive(Debug, StructOpt)]
@@ -126,7 +130,11 @@ impl Jrn {
         Jrn::from_clap(&clap_app.get_matches())
     }
 
-    fn match_on_subcommand(self, mut repo: JrnRepo) {
+    fn start_loop(self, repo: JrnRepo) {
+        self.match_on_command(repo);
+    }
+
+    fn match_on_command(self, mut repo: JrnRepo) {
         match self {
             Self::New {
                 skip_opening_editor,
@@ -147,10 +155,10 @@ impl Jrn {
                 repo.push_tag(&tag, entry_descriptor);
             }
             Self::Tags { .. } => {
-                //TODO implement tags subcommand
+                //TODO implement tags command
             }
             Self::Config { .. } => {
-                //TODO implement config subcommand
+                //TODO implement config command
             }
             Self::Remove { entry_hash } => {
                 match entry_hash {
