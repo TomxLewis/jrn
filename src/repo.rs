@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use super::*;
 use std::ops::Deref;
+use regex::Regex;
 
 /// in memory knowledge of JrnRepo on disk
 pub struct JrnRepo {
@@ -81,11 +82,10 @@ impl JrnRepo {
     /// display entries to std::out
     /// that match the provided string
     pub fn list_entries(&self, pattern: &str, most_recent: Option<usize>) -> Result<(), JrnError> {
-        //TODO unify pattern handling between list methods
-        let filter = JrnEntryFilter::from_pattern(pattern)?.into_filter();
+        let regex = Regex::new(pattern)?;
         let mut matched: VecDeque<&JrnEntry> = self.entries
             .iter()
-            .filter(|entry| filter(entry))
+            .filter(|entry| regex.is_match(entry.file_path_str()))
             .collect();
 
         if let Some(most_recent) = most_recent {
@@ -105,14 +105,15 @@ impl JrnRepo {
         Ok(())
     }
 
-    pub fn list_tags(&self, pattern: &str) {
-        //TODO unify pattern handling between list methods
+    pub fn list_tags(&self, pattern: &str) -> Result<(), JrnError> {
+        let regex = Regex::new(pattern)?;
         let tags = self.tags.sorted();
         for tag in tags {
-            if tag.1.contains(pattern) {
+            if regex.is_match(&tag.1) {
                 println!("{}: {}", tag.1, tag.0);
             }
         }
+        Ok(())
     }
 
     pub fn push_tag(&mut self, tag: &str, _descriptor: Option<String>) {

@@ -169,23 +169,6 @@ impl Display for JrnEntry {
     }
 }
 
-pub struct JrnEntryFilter {
-    regex: Regex,
-}
-
-impl JrnEntryFilter {
-    pub fn into_filter(self) -> Box<impl Fn(&JrnEntry) -> bool> {
-        Box::new(move |entry: &JrnEntry| self.regex.is_match(&entry.file_path_str()))
-    }
-
-    pub fn from_pattern(re: &str) -> Result<Self, JrnError> {
-        let filter = JrnEntryFilter {
-            regex: Regex::new(re)?,
-        };
-        Ok(filter)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;

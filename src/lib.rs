@@ -15,7 +15,7 @@ mod tag_container;
 mod time;
 
 //internals
-use entry::{JrnEntry, JrnEntryFilter};
+use entry::JrnEntry;
 use location::Location;
 pub use tag_container::{CountAndTag, TagContainer};
 use time::TimeStamp;

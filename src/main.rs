@@ -131,26 +131,24 @@ impl Jrn {
     }
 
     fn start_loop(self, repo: JrnRepo) {
-        self.match_on_command(repo);
+        self.match_on_command(repo).expect("Debug");
     }
 
-    fn match_on_command(self, mut repo: JrnRepo) {
+    fn match_on_command(self, mut repo: JrnRepo) -> Result<(), JrnError>{
         use self::Jrn::*;
         match self {
             New { skip_edit, location, tags } => {
-                repo.create_entry(tags, location, skip_edit)
-                    .expect("Failure creating entry");
+                repo.create_entry(tags, location, skip_edit)?;
             }
             List { pattern, n } => {
-                repo.list_entries(pattern.as_ref(), n)
-                    .expect("Error listing entries");
+                repo.list_entries(pattern.as_ref(), n)?;
             }
             PushTag { tag, entry_descriptor} => {
                 repo.push_tag(&tag, entry_descriptor);
             }
             Tags { pattern, list, delete, new_name } => {
                 if list {
-                    repo.list_tags(&pattern)
+                    repo.list_tags(&pattern)?;
                 }
                 //TODO implement tags command
             }
@@ -161,7 +159,7 @@ impl Jrn {
                 match entry_hash {
                     Some(s) => { 
                         if &s == "HEAD" {
-                            repo.remove_latest();
+                            repo.remove_latest()?;
                         } else {
                             log::info!("TODO impl remove hash");
                             log::info!("Found hash {}", &s);
@@ -173,5 +171,6 @@ impl Jrn {
                 }
             }
         }
+        Ok(())
     }
 }
