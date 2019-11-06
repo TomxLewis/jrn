@@ -104,10 +104,12 @@ impl JrnRepo {
         Ok(())
     }
 
-    pub fn list_tags(&self) {
+    pub fn list_tags(&self, pattern: &str) {
         let tags = self.tags.sorted();
         for tag in tags {
-            println!("{}: {}", tag.1, tag.0);
+            if tag.1.contains(pattern) {
+                println!("{}: {}", tag.1, tag.0);
+            }
         }
     }
 

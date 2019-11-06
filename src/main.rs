@@ -35,7 +35,7 @@ enum Jrn {
     New {
         #[structopt(short = "q", long = "quick")]
         /// Don't open the editor, just create the entry
-        skip_opening_editor: bool,
+        skip_edit: bool,
 
         #[structopt(short, long, env = "JRN_LOCATION")]
         /// Location the new entry was created
@@ -135,32 +135,29 @@ impl Jrn {
     }
 
     fn match_on_command(self, mut repo: JrnRepo) {
+        use self::Jrn::*;
         match self {
-            Self::New {
-                skip_opening_editor,
-                location,
-                tags,
-            } => {
+            New { skip_edit, location, tags } => {
                 repo.create_entry(tags, location, skip_opening_editor)
                     .expect("Failure creating entry");
             }
-            Self::List { pattern, n } => {
+            List { pattern, n } => {
                 repo.list_entries(pattern.as_ref(), n)
                     .expect("Error listing entries");
             }
-            Self::PushTag {
-                tag,
-                entry_descriptor,
-            } => {
+            PushTag { tag, entry_descriptor} => {
                 repo.push_tag(&tag, entry_descriptor);
             }
-            Self::Tags { .. } => {
+            Tags { pattern, list, delete, new_name } => {
+                if list {
+                    repo.list_tags(&pattern)
+                }
                 //TODO implement tags command
             }
-            Self::Config { .. } => {
+            Config { .. } => {
                 //TODO implement config command
             }
-            Self::Remove { entry_hash } => {
+            Remove { entry_hash } => {
                 match entry_hash {
                     Some(s) => { 
                         if &s == "HEAD" {
