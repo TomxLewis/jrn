@@ -81,6 +81,7 @@ impl JrnRepo {
     /// display entries to std::out
     /// that match the provided string
     pub fn list_entries(&self, pattern: &str, most_recent: Option<usize>) -> Result<(), JrnError> {
+        //TODO unify pattern handling between list methods
         let filter = JrnEntryFilter::from_pattern(pattern)?.into_filter();
         let mut matched: VecDeque<&JrnEntry> = self.entries
             .iter()
@@ -105,6 +106,7 @@ impl JrnRepo {
     }
 
     pub fn list_tags(&self, pattern: &str) {
+        //TODO unify pattern handling between list methods
         let tags = self.tags.sorted();
         for tag in tags {
             if tag.1.contains(pattern) {
