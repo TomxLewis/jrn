@@ -83,7 +83,7 @@ enum Jrn {
         /// Confirmation will be asked for before modifying multiple entries
         pattern: String,
 
-        #[structopt(short)]
+        #[structopt(short, long)]
         /// Display all tags and the number of times they appear
         list: bool,
 
@@ -138,7 +138,7 @@ impl Jrn {
         use self::Jrn::*;
         match self {
             New { skip_edit, location, tags } => {
-                repo.create_entry(tags, location, skip_opening_editor)
+                repo.create_entry(tags, location, skip_edit)
                     .expect("Failure creating entry");
             }
             List { pattern, n } => {
